@@ -39,7 +39,8 @@
     "lru-cache": "^4.0.2",
     "mississippi": "^1.2.0",
     "node-fetch": "^2.0.0-alpha.3",
-    "proxy-agent": "^2.0.0"
+    "proxy-agent": "^2.0.0",
+    "retry": "^0.10.1"
   },
   "devDependencies": {
     "mkdirp": "^0.5.1",
