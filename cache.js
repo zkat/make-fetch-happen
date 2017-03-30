@@ -125,7 +125,6 @@ module.exports = class Cache {
       bufSize += chunk.length
       cb()
     }, done => {
-      console.log('writing to cache', this._cachePath)
       cacache.put(
         this._cachePath,
         cacheKey(req),
@@ -145,13 +144,10 @@ module.exports = class Cache {
     newBody.once('error', err => oldBody.emit('error', err))
     cacheStream.once('error', err => newBody.emit('error', err))
     pipe(oldBody, to((chunk, enc, cb) => {
-      console.log('writing to cacheStream')
       cacheStream.write(chunk, enc, () => {
-        console.log('writing to newBody')
         newBody.write(chunk, enc, cb)
       })
     }, done => {
-      console.log('wooo')
       cacheStream.end(() => newBody.end(done))
     }), err => newBody.emit('error', err))
     return response

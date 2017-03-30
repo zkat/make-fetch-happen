@@ -33,7 +33,6 @@ function cachingFetch (uri, opts) {
   }
   return fetch.Promise.resolve(res).then(res => {
     if (res && opts.cache === 'default' && !isStale(res)) {
-      console.log(uri, 'local cache data not stale. Skipping 304 check.')
       return res
     } else if (res && (opts.cache === 'default' || opts.cache === 'no-cache')) {
       return condFetch(uri, res, opts)
@@ -41,7 +40,6 @@ function cachingFetch (uri, opts) {
       throw new Error(`request to ${uri} failed: cache mode is 'only-if-cached' but no cached response available.`)
     } else {
       // Missing cache entry, stale default, reload, no-store
-      console.log(uri, 'no cache mode. Plain remote req')
       return remoteFetch(uri, opts)
     }
   })
@@ -83,7 +81,6 @@ function heuristicFreshness (res) {
 }
 
 function condFetch (uri, res, opts) {
-  console.log(uri, 'conditional request')
   const newHeaders = {}
   Object.keys(opts.headers || {}).forEach(k => {
     newHeaders[k] = opts.headers[k]
@@ -103,10 +100,8 @@ function condFetch (uri, res, opts) {
   opts.headers = newHeaders
   return remoteFetch(uri, opts).then(condRes => {
     if (condRes.status === 304) {
-      console.log(uri, 'got 304. Using old request body')
       condRes.body = res.body
     } else {
-      console.log(uri, 'condition did not match. Using new request')
     }
     return condRes
   })
@@ -144,10 +139,8 @@ function remoteFetch (uri, opts) {
   })
   return fetch(req).then(res => {
     if (!opts.cachePath || opts.cache === 'no-store' || res.status > 299) {
-      console.log(uri, 'not saving to cache')
       return res
     } else {
-      console.log(uri, 'saving to cache')
       return new Cache(opts.cachePath, opts).put(req, res)
     }
   })
