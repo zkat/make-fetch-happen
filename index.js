@@ -16,7 +16,7 @@ module.exports = cachingFetch
 function cachingFetch (uri, _opts) {
   const opts = {}
   Object.keys(_opts || {}).forEach(k => { opts[k] = _opts[k] })
-  if (opts.cache && !Cache) { Cache = require('./cache') }
+  if (opts.cache === 'string' && !Cache) { Cache = require('./cache') }
   opts.cache = opts.cache && (
     typeof opts.cache === 'string'
     ? new Cache(opts.cache, opts.cacheOpts)
