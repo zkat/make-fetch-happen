@@ -6,16 +6,20 @@ const fs = require('fs')
 const pipe = require('mississippi').pipe
 const through = require('mississippi').through
 const to = require('mississippi').to
+const url = require('url')
 
 const MAX_MEM_SIZE = 5 * 1024 * 1024 // 5MB
 
 function cacheKey (req) {
+  const parsed = url.parse(req.url)
   return `make-fetch-happen:request-cache:${
-    (req.method || 'GET').toUpperCase()
-  }:${
-    req.headers && req.headers.get('accept-encoding') || '*'
-  }:${
-    req.uri
+    url.format({
+      protocol: parsed.protocol,
+      slashes: parsed.slashes,
+      host: parsed.host,
+      hostname: parsed.hostname,
+      pathname: parsed.pathname
+    })
   }`
 }
 
@@ -40,8 +44,7 @@ module.exports = class Cache {
       cacheKey(request),
       this._cacheOpts
     ).then(info => {
-      if (info) {
-        // TODO - if it's small enough, slurp into memory
+      if (info && matchDetails(request, info.metadata, opts)) {
         return new this.Promise((resolve, reject) => {
           fs.stat(info.path, (err, stat) => {
             if (err) {
@@ -111,44 +114,53 @@ module.exports = class Cache {
     const req = new fetch.Request(request)
     const size = response.headers.get('content-length')
     this._cacheOpts.metadata = {
+      url: request.url,
       headers: response.headers.raw()
     }
-    if (false && size && size < MAX_MEM_SIZE) {
-      return response.buffer().then(data => {
-        return cacache.put(
-          this._cachePath,
-          cacheKey(req),
-          data,
-          this._cacheOpts
-        )
-      }).then(() => response)
-    } else {
-      const stream = cacache.put.stream(
+    let buf = []
+    let bufSize = 0
+    let cacheStream = (size && size < MAX_MEM_SIZE)
+    ? to({highWaterMark: MAX_MEM_SIZE}, (chunk, enc, cb) => {
+      buf.push(chunk)
+      bufSize += chunk.length
+      cb()
+    }, done => {
+      console.log('writing to cache', this._cachePath)
+      cacache.put(
         this._cachePath,
-        cacheKey(req.url),
+        cacheKey(req),
+        Buffer.concat(buf, bufSize),
         this._cacheOpts
-      )
-      const oldBody = response.body
-      const newBody = through()
-      response.body = newBody
-      oldBody.once('error', err => newBody.emit('error', err))
-      newBody.once('error', err => oldBody.emit('error', err))
-      stream.once('error', err => newBody.emit('error', err))
-      pipe(oldBody, to((chunk, enc, cb) => {
-        stream.write(chunk, enc, () => {
-          newBody.write(chunk, enc, cb)
-        })
-      }, done => {
-        stream.end(() => newBody.end(done))
-      }))
-      return response
-    }
+      ).then(done, done)
+    })
+    : cacache.put.stream(
+      this._cachePath,
+      cacheKey(req),
+      this._cacheOpts
+    )
+    const oldBody = response.body
+    const newBody = through()
+    response.body = newBody
+    oldBody.once('error', err => newBody.emit('error', err))
+    newBody.once('error', err => oldBody.emit('error', err))
+    cacheStream.once('error', err => newBody.emit('error', err))
+    pipe(oldBody, to((chunk, enc, cb) => {
+      console.log('writing to cacheStream')
+      cacheStream.write(chunk, enc, () => {
+        console.log('writing to newBody')
+        newBody.write(chunk, enc, cb)
+      })
+    }, done => {
+      console.log('wooo')
+      cacheStream.end(() => newBody.end(done))
+    }), err => newBody.emit('error', err))
+    return response
   }
 
   // Finds the Cache entry whose key is the request, and if found, deletes the
   // Cache entry and returns a Promise that resolves to true. If no Cache entry
   // is found, it returns false.
-  ['delete'] (request, options) {
+  'delete' (request, options) {
     const req = new fetch.Request(request)
     return cacache.rm.entry(
       this._cachePath,
@@ -161,4 +173,19 @@ module.exports = class Cache {
   keys (request, options) {
     return cacache.ls(this._cachePath).then(entries => Object.keys(entries))
   }
+}
+
+function matchDetails (req, cached, opts) {
+  const reqUrl = url.parse(req.url)
+  const cacheUrl = url.parse(cached.url)
+  if (!opts.ignoreSearch && (cacheUrl.search !== reqUrl.search)) {
+    return false
+  }
+  if (!opts.ignoreMethod && req.method && req.method !== 'GET') {
+    return false
+  }
+  // TODO - opts.ignoreVary?
+  reqUrl.hash = null
+  cacheUrl.hash = null
+  return url.format(reqUrl) === url.format(cacheUrl)
 }

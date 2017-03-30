@@ -33,13 +33,15 @@ function cachingFetch (uri, opts) {
   }
   return fetch.Promise.resolve(res).then(res => {
     if (res && opts.cache === 'default' && !isStale(res)) {
+      console.log(uri, 'local cache data not stale. Skipping 304 check.')
       return res
-    } else if (res && opts.cache === 'default' || opts.cache === 'no-cache') {
+    } else if (res && (opts.cache === 'default' || opts.cache === 'no-cache')) {
       return condFetch(uri, res, opts)
     } else if (!res && opts.cache === 'only-if-cached') {
       throw new Error(`request to ${uri} failed: cache mode is 'only-if-cached' but no cached response available.`)
     } else {
       // Missing cache entry, stale default, reload, no-store
+      console.log(uri, 'no cache mode. Plain remote req')
       return remoteFetch(uri, opts)
     }
   })
@@ -55,7 +57,7 @@ function isStale (res) {
 
 function freshnessLifetime (res) {
   const cacheControl = res.headers.get('Cache-Control') || ''
-  const maxAgeMatch = cacheControl.match(/(?:s\-maxage|max\-age):\s*(\d+)/)
+  const maxAgeMatch = cacheControl.match(/(?:s-maxage|max-age):\s*(\d+)/)
   if (maxAgeMatch) {
     return +maxAgeMatch[1]
   } else if (res.headers.get('Expires')) {
@@ -81,6 +83,7 @@ function heuristicFreshness (res) {
 }
 
 function condFetch (uri, res, opts) {
+  console.log(uri, 'conditional request')
   const newHeaders = {}
   Object.keys(opts.headers || {}).forEach(k => {
     newHeaders[k] = opts.headers[k]
@@ -100,11 +103,12 @@ function condFetch (uri, res, opts) {
   opts.headers = newHeaders
   return remoteFetch(uri, opts).then(condRes => {
     if (condRes.status === 304) {
-      // TODO - update cache last-modified?
-      return res
+      console.log(uri, 'got 304. Using old request body')
+      condRes.body = res.body
     } else {
-      return condRes
+      console.log(uri, 'condition did not match. Using new request')
     }
+    return condRes
   })
 }
 
@@ -140,8 +144,10 @@ function remoteFetch (uri, opts) {
   })
   return fetch(req).then(res => {
     if (!opts.cachePath || opts.cache === 'no-store' || res.status > 299) {
+      console.log(uri, 'not saving to cache')
       return res
     } else {
+      console.log(uri, 'saving to cache')
       return new Cache(opts.cachePath, opts).put(req, res)
     }
   })
