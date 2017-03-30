@@ -39,8 +39,9 @@
     "lru-cache": "^4.0.2",
     "mississippi": "^1.2.0",
     "node-fetch": "^2.0.0-alpha.3",
+    "promise-retry": "^1.1.1",
     "proxy-agent": "^2.0.0",
-    "retry": "^0.10.1"
+    "safe-buffer": "^5.0.1"
   },
   "devDependencies": {
     "mkdirp": "^0.5.1",

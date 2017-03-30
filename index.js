@@ -6,37 +6,43 @@ const http = require('http')
 const https = require('https')
 let ProxyAgent
 const pkg = require('./package.json')
+const retry = require('promise-retry')
 const url = require('url')
 
 // The "cache mode" options are really confusing, and this module does
 // its best to recreate them:
 // https://fetch.spec.whatwg.org/#http-network-or-cache-fetch
 module.exports = cachingFetch
-function cachingFetch (uri, opts) {
-  opts = opts || {}
-  opts.cache = opts.cache || 'default'
-  if (opts.cache === 'default' && isConditional(opts.headers || {})) {
+function cachingFetch (uri, _opts) {
+  const opts = {}
+  Object.keys(_opts || {}).forEach(k => { opts[k] = _opts[k] })
+  if (opts.cache && !Cache) { Cache = require('./cache') }
+  opts.cache = opts.cache && (
+    typeof opts.cache === 'string'
+    ? new Cache(opts.cache, opts.cacheOpts)
+    : opts.cache
+  )
+  opts.cacheMode = opts.cache && (opts.cacheMode || 'default')
+  if (opts.cacheMode === 'default' && isConditional(opts.headers || {})) {
     // If header list contains `If-Modified-Since`, `If-None-Match`,
     // `If-Unmodified-Since`, `If-Match`, or `If-Range`, fetch will set cache
     // mode to "no-store" if it is "default".
-    opts.cache = 'no-store'
+    opts.cacheMode = 'no-store'
   }
   let res
   if (
-    opts.cachePath && !(
-      opts.cache === 'no-store' ||
-      opts.cache === 'reload'
-    )
+    opts.cache &&
+    opts.cacheMode !== 'no-store' &&
+    opts.cacheMode !== 'reload'
   ) {
-    if (!Cache) { Cache = require('./cache') }
-    res = new Cache(opts.cachePath, opts).match(uri)
+    res = opts.cache.match(uri, opts.cacheOpts)
   }
   return fetch.Promise.resolve(res).then(res => {
-    if (res && opts.cache === 'default' && !isStale(res)) {
+    if (res && opts.cacheMode === 'default' && !isStale(res)) {
       return res
-    } else if (res && (opts.cache === 'default' || opts.cache === 'no-cache')) {
+    } else if (res && (opts.cacheMode === 'default' || opts.cacheMode === 'no-cache')) {
       return condFetch(uri, res, opts)
-    } else if (!res && opts.cache === 'only-if-cached') {
+    } else if (!res && opts.cacheMode === 'only-if-cached') {
       throw new Error(`request to ${uri} failed: cache mode is 'only-if-cached' but no cached response available.`)
     } else {
       // Missing cache entry, stale default, reload, no-store
@@ -108,42 +114,67 @@ function condFetch (uri, res, opts) {
 }
 
 function remoteFetch (uri, opts) {
+  const agent = getAgent(uri, opts)
   const headers = {
-    'connection': 'keep-alive',
-    'user-agent': opts.userAgent || `${pkg.name}/${pkg.version}`
+    'connection': agent ? 'keep-alive' : 'close',
+    'user-agent': `${pkg.name}/${pkg.version} (+https://npm.im/${pkg.name})`
   }
   if (opts.headers) {
     Object.keys(opts.headers).forEach(k => {
       headers[k] = opts.headers[k]
     })
   }
-  const agentOpts = url.parse(opts.proxy || uri)
-  agentOpts.ca = opts.ca
-  agentOpts.cert = opts.cert
-  agentOpts.ciphers = opts.ciphers
-  if (opts.proxy && !ProxyAgent) {
-    ProxyAgent = require('proxy-agent')
-  }
-  const agent = opts.agent || (opts.proxy
-  ? new ProxyAgent(agentOpts)
-  : (
-    url.parse(uri).protocol === 'https:'
-    ? https.globalAgent
-    : http.globalAgent
-  ))
-  const req = new fetch.Request(uri, {
-    agent,
-    compress: opts.compress == null || opts.compress,
-    headers,
-    redirect: opts.redirect || 'follow'
-  })
-  return fetch(req).then(res => {
-    if (!opts.cachePath || opts.cache === 'no-store' || res.status > 299) {
-      return res
-    } else {
-      return new Cache(opts.cachePath, opts).put(req, res)
+  return retry((retryHandler, attemptNum) => {
+    const req = new fetch.Request(uri, {
+      agent,
+      body: opts.body,
+      compress: opts.compress,
+      follow: opts.follow,
+      headers,
+      method: opts.method,
+      redirect: opts.redirect || 'follow',
+      size: opts.size,
+      timeout: opts.timeout || 0
+    })
+    return fetch(req).then(res => {
+      if (opts.cache && opts.cacheMode !== 'no-store' && res.status < 300 && res.status >= 200) {
+        return opts.cache.put(req, res, opts.cacheOpts)
+      } else if (req.method !== 'POST' && res.status >= 500) {
+        return retryHandler(res)
+      } else {
+        return res
+      }
+    }).catch(err => {
+      if (req.method !== 'POST') {
+        return retryHandler(err)
+      } else {
+        throw err
+      }
+    })
+  }, opts.retry)
+}
+
+function getAgent (uri, opts) {
+  if (opts.agent) {
+    return opts.agent
+  } else if (opts.proxy) {
+    const agentOpts = url.parse(opts.proxy || uri)
+    if (opts.proxyOpts) {
+      Object.keys(opts.proxyOpts).forEach(k => {
+        agentOpts[k] = opts.proxyOpts[k]
+      })
     }
-  })
+    if (opts.proxy && !ProxyAgent) {
+      ProxyAgent = require('proxy-agent')
+    }
+    return new ProxyAgent(agentOpts)
+  } else if (url.parse(uri).protocol === 'https:') {
+    return https.globalAgent
+  } else if (url.parse(uri).protocol === 'http:') {
+    return http.globalAgent
+  } else {
+    return null
+  }
 }
 
 function isConditional (headers) {
