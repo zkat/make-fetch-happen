@@ -82,7 +82,7 @@ function heuristicFreshness (res) {
     const age = (date - new Date(lastMod)) / 1000
     return Math.min(age * 0.1, 300)
   } else {
-    return 300 * 1000
+    return 300
   }
 }
 
