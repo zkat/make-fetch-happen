@@ -1,11 +1,36 @@
 'use strict'
 
-const test = require('tap').test
+const Buffer = require('safe-buffer').Buffer
 
-test('accepts a local path for caches')
-test('matches requests by url')
+const test = require('tap').test
+const tnock = require('./util/tnock')
+
+const fetch = require('..')
+
+const CACHE = require('./util/test-dir')(__filename)
+const CONTENT = Buffer.from('hello, world!')
+const HOST = 'https://local.registry.npm'
+
+test('accepts a local path for caches', t => {
+  tnock(t, HOST).get('/test').reply(200, CONTENT)
+  return fetch(`${HOST}/test`, {
+    cacheManager: CACHE,
+    retry: {retries: 0}
+  }).then(res => res.buffer()).then(body => {
+    t.deepEqual(body, CONTENT, 'got remote content')
+    return fetch(`${HOST}/test`, {
+      cacheManager: CACHE
+    }).then(res => {
+      t.equal(res.status, 200, 'non-stale cached res has 200 status')
+      return res.buffer()
+    }).then(body => {
+      t.deepEqual(body, CONTENT, 'got cached content')
+    })
+  })
+})
+
 test('sends both If-None-Match and If-Modified-Since headers')
-test('status code is 304 on cache hit')
+test('status code is 304 on revalidated cache hit')
 test('status code is 200 on cache miss + request')
 test('cached request updated on 304 (so no longer stale)')
 test('Warning header removed on cache hit')
