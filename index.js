@@ -155,8 +155,8 @@ function remoteFetch (uri, opts) {
         req.method.toLowerCase() === 'get' &&
         opts.cache &&
         opts.cacheMode !== 'no-store' &&
-        res.status < 300 &&
-        res.status >= 200
+        // No other statuses should be stored!
+        res.status === 200
       ) {
         return opts.cache.put(req, res, opts.cacheOpts)
       } else if (req.method.toLowerCase() !== 'post' && res.status >= 500) {
