@@ -17,7 +17,10 @@ function cachingFetch (uri, _opts) {
   const opts = {}
   Object.keys(_opts || {}).forEach(k => { opts[k] = _opts[k] })
   opts.method = opts.method && opts.method.toUpperCase()
-  if (typeof opts.cacheManager === 'string' && !Cache) { Cache = require('./cache') }
+  if (typeof opts.cacheManager === 'string' && !Cache) {
+    // Default cacache-based cache
+    Cache = require('./cache')
+  }
   opts.cacheManager = opts.cacheManager && (
     typeof opts.cacheManager === 'string'
     ? new Cache(opts.cacheManager, opts.cacheOpts)
@@ -48,7 +51,7 @@ function cachingFetch (uri, _opts) {
       } else if (!res && opts.cache === 'only-if-cached') {
         throw new Error(`request to ${uri} failed: cache mode is 'only-if-cached' but no cached response available.`)
       } else {
-        // Missing cache entry, stale default, reload, no-store
+        // Missing cache entry, or mode is default (if stale), reload, no-store
         return remoteFetch(uri, opts)
       }
     })
@@ -68,8 +71,12 @@ function isStale (res) {
 // https://tools.ietf.org/html/rfc7234#section-4.2.1
 function freshnessLifetime (res) {
   const cacheControl = res.headers.get('Cache-Control') || ''
-  const maxAgeMatch = cacheControl.match(/(?:s-maxage|max-age)\s*=\s*(\d+)/)
-  if (maxAgeMatch) {
+  const maxAgeMatch = cacheControl.match(/(s-maxage|max-age)\s*=\s*(\d+)/i)
+  const noCacheMatch = cacheControl.match(/no-cache/i)
+  if (noCacheMatch) {
+    // no-cache requires revalidation on every request
+    return 0
+  } else if (maxAgeMatch) {
     return +maxAgeMatch[1]
   } else if (res.headers.get('Expires')) {
     const expireDate = new Date(res.headers.get('Expires'))
@@ -112,10 +119,11 @@ function condFetch (uri, cachedRes, opts) {
   }
   opts.headers = newHeaders
   return remoteFetch(uri, opts).then(condRes => {
+    const ctrl = cachedRes.headers.get('cache-control') || ''
     if (condRes.status === 304) {
-      condRes.body = cachedRes.body
       // TODO - freshen up the cached entry
-    } else if (condRes.status >= 500) {
+      condRes.body = cachedRes.body
+    } else if (condRes.status >= 500 && !ctrl.match(/must-revalidate/i)) {
       if (condRes.method === 'GET') {
         return cachedRes
       } else {
@@ -149,9 +157,11 @@ function remoteFetch (uri, opts) {
   return retry((retryHandler, attemptNum) => {
     const req = new fetch.Request(uri, reqOpts)
     return fetch(req).then(res => {
+      const cacheCtrl = res.headers.get('cache-control')
       if (
         req.method === 'GET' &&
         opts.cacheManager &&
+        !cacheCtrl.match(/no-store/i) &&
         opts.cache !== 'no-store' &&
         // No other statuses should be stored!
         res.status === 200
