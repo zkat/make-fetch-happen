@@ -67,7 +67,7 @@ function isStale (res) {
 // https://tools.ietf.org/html/rfc7234#section-4.2.1
 function freshnessLifetime (res) {
   const cacheControl = res.headers.get('Cache-Control') || ''
-  const maxAgeMatch = cacheControl.match(/(?:s-maxage|max-age):\s*(\d+)/)
+  const maxAgeMatch = cacheControl.match(/(?:s-maxage|max-age)\s*=\s*(\d+)/)
   if (maxAgeMatch) {
     return +maxAgeMatch[1]
   } else if (res.headers.get('Expires')) {
