@@ -156,7 +156,8 @@ function remoteFetch (uri, opts) {
 }
 
 function getAgent (uri, opts) {
-  if (opts.agent) {
+  if (opts.agent != null) {
+    // `agent: false` has special behavior!
     return opts.agent
   } else if (opts.proxy) {
     const agentOpts = url.parse(opts.proxy || uri)
