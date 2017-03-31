@@ -157,7 +157,7 @@ function remoteFetch (uri, opts) {
   return retry((retryHandler, attemptNum) => {
     const req = new fetch.Request(uri, reqOpts)
     return fetch(req).then(res => {
-      const cacheCtrl = res.headers.get('cache-control')
+      const cacheCtrl = res.headers.get('cache-control') || ''
       if (
         req.method === 'GET' &&
         opts.cacheManager &&
