@@ -29,21 +29,17 @@ function cacheKey (req) {
 //
 module.exports = class Cache {
   constructor (path, opts) {
-    this._cachePath = path
-    this._cacheOpts = opts
-    this.Promise = opts.Promise || Promise
+    this._path = path
+    this._uid = opts && opts.uid
+    this._gid = opts && opts.gid
+    this.Promise = (opts && opts.Promise) || Promise
   }
 
   // Returns a Promise that resolves to the response associated with the first
   // matching request in the Cache object.
   match (request, opts) {
-    // TODO - opts.ignoreSearch, opts.ignoreMethod, opts.ignoreVary
     request = new fetch.Request(request)
-    return cacache.get.info(
-      this._cachePath,
-      cacheKey(request),
-      this._cacheOpts
-    ).then(info => {
+    return cacache.get.info(this._path, cacheKey(request)).then(info => {
       if (info && matchDetails(request, info.metadata, opts)) {
         return new this.Promise((resolve, reject) => {
           fs.stat(info.path, (err, stat) => {
@@ -54,24 +50,18 @@ module.exports = class Cache {
             }
           })
         }).then(stat => {
-          // meh
-          this._cacheOpts.hashAlgorithm = info.hashAlgorithm
-
           let body
           if (stat.size > MAX_MEM_SIZE) {
-            body = cacache.get.stream.byDigest(
-              this._cachePath,
-              info.digest,
-              this._cacheOpts
-            )
+            body = cacache.get.stream.byDigest(this._path, info.digest, {
+              hashAlgorithm: info.hashAlgorithm
+            })
           } else {
             // cacache is much faster at bulk reads
             body = through()
-            cacache.get.byDigest(
-              this._cachePath,
-              info.digest,
-              this._cacheOpts
-            ).then(data => {
+            cacache.get.byDigest(this._path, info.digest, {
+              hashAlgorithm: info.hashAlgorithm,
+              memoize: true
+            }).then(data => {
               body.write(data, () => {
                 body.end()
               })
@@ -113,32 +103,35 @@ module.exports = class Cache {
   put (request, response) {
     const req = new fetch.Request(request)
     const size = response.headers.get('content-length')
-    this._cacheOpts.metadata = {
-      url: request.url,
-      headers: response.headers.raw()
+    const fitInMemory = !!size && size < MAX_MEM_SIZE
+    const opts = {
+      metadata: {
+        url: request.url,
+        headers: response.headers.raw()
+      },
+      uid: this._uid,
+      gid: this._gid,
+      size,
+      memoize: fitInMemory
     }
     let buf = []
     let bufSize = 0
-    let cacheStream = (size && size < MAX_MEM_SIZE)
+    let cacheStream = fitInMemory
     ? to({highWaterMark: MAX_MEM_SIZE}, (chunk, enc, cb) => {
       buf.push(chunk)
       bufSize += chunk.length
       cb()
     }, done => {
       cacache.put(
-        this._cachePath,
+        this._path,
         cacheKey(req),
         Buffer.concat(buf, bufSize),
-        this._cacheOpts
-      ).then(done, done)
+        opts
+      ).then(() => done(), done)
     })
-    : cacache.put.stream(
-      this._cachePath,
-      cacheKey(req),
-      this._cacheOpts
-    )
+    : cacache.put.stream(this._path, cacheKey(req), opts)
     const oldBody = response.body
-    const newBody = through()
+    const newBody = through({highWaterMark: fitInMemory && MAX_MEM_SIZE})
     response.body = newBody
     oldBody.once('error', err => newBody.emit('error', err))
     newBody.once('error', err => oldBody.emit('error', err))
@@ -149,7 +142,7 @@ module.exports = class Cache {
       })
     }, done => {
       cacheStream.end(() => newBody.end(done))
-    }), err => newBody.emit('error', err))
+    }), err => err && newBody.emit('error', err))
     return response
   }
 
@@ -159,25 +152,24 @@ module.exports = class Cache {
   'delete' (request, options) {
     const req = new fetch.Request(request)
     return cacache.rm.entry(
-      this._cachePath,
-      cacheKey(req.url),
-      this._cacheOpts
+      this._path,
+      cacheKey(req.url)
     // TODO - true/false
     ).then(() => false)
   }
 
   keys (request, options) {
-    return cacache.ls(this._cachePath).then(entries => Object.keys(entries))
+    return cacache.ls(this._path).then(entries => Object.keys(entries))
   }
 }
 
 function matchDetails (req, cached, opts) {
   const reqUrl = url.parse(req.url)
   const cacheUrl = url.parse(cached.url)
-  if (!opts.ignoreSearch && (cacheUrl.search !== reqUrl.search)) {
+  if (!(opts && opts.ignoreSearch) && (cacheUrl.search !== reqUrl.search)) {
     return false
   }
-  if (!opts.ignoreMethod && req.method && req.method !== 'GET') {
+  if (!(opts && opts.ignoreMethod) && req.method && req.method !== 'GET') {
     return false
   }
   // TODO - opts.ignoreVary?
