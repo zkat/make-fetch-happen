@@ -31,6 +31,7 @@ function cachingFetch (uri, _opts) {
   }
   let res
   if (
+    (!opts.method || opts.method.toLowerCase() === 'get') &&
     opts.cache &&
     opts.cacheMode !== 'no-store' &&
     opts.cacheMode !== 'reload'
@@ -87,37 +88,48 @@ function heuristicFreshness (res) {
   }
 }
 
-function condFetch (uri, res, opts) {
+function condFetch (uri, cachedRes, opts) {
   const newHeaders = {}
   Object.keys(opts.headers || {}).forEach(k => {
     newHeaders[k] = opts.headers[k]
   })
-  if (res.headers.get('etag')) {
+  if (cachedRes.headers.get('etag')) {
     const condHeader = opts.method && opts.method.toLowerCase() !== 'get'
     ? 'if-match'
     : 'if-none-match'
-    newHeaders[condHeader] = res.headers.get('etag')
+    newHeaders[condHeader] = cachedRes.headers.get('etag')
   }
-  if (res.headers.get('last-modified')) {
+  if (cachedRes.headers.get('last-modified')) {
     const condHeader = opts.method && opts.method.toLowerCase() !== 'get'
     ? 'if-unmodified-since'
     : 'if-modified-since'
-    newHeaders[condHeader] = res.headers.get('last-modified')
+    newHeaders[condHeader] = cachedRes.headers.get('last-modified')
   }
   opts.headers = newHeaders
   return remoteFetch(uri, opts).then(condRes => {
     if (condRes.status === 304) {
-      condRes.body = res.body
-    } else {
+      condRes.body = cachedRes.body
+    } else if (condRes.status >= 500) {
+      if (condRes.method.toLowerCase() === 'get') {
+        return cachedRes
+      } else {
+        return opts.cache.delete(uri).then(() => cachedRes)
+      }
     }
-    return condRes
+    if (condRes.method.toLowerCase() !== 'get') {
+      return opts.cache.delete(uri).then(() => condRes)
+    } else {
+      return condRes
+    }
+  }).catch(() => {
+    return cachedRes
   })
 }
 
 function remoteFetch (uri, opts) {
   const agent = getAgent(uri, opts)
   const headers = {
-    'connection': agent ? 'keep-alive' : 'close',
+    'connection': agent != null ? 'keep-alive' : 'close',
     'user-agent': `${pkg.name}/${pkg.version} (+https://npm.im/${pkg.name})`
   }
   if (opts.headers) {
@@ -138,9 +150,15 @@ function remoteFetch (uri, opts) {
       timeout: opts.timeout || 0
     })
     return fetch(req).then(res => {
-      if (opts.cache && opts.cacheMode !== 'no-store' && res.status < 300 && res.status >= 200) {
+      if (
+        req.method.toLowerCase() === 'get' &&
+        opts.cache &&
+        opts.cacheMode !== 'no-store' &&
+        res.status < 300 &&
+        res.status >= 200
+      ) {
         return opts.cache.put(req, res, opts.cacheOpts)
-      } else if (req.method !== 'POST' && res.status >= 500) {
+      } else if (req.method.toLowerCase() !== 'post' && res.status >= 500) {
         return retryHandler(res)
       } else {
         return res
