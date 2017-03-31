@@ -109,6 +109,7 @@ function condFetch (uri, cachedRes, opts) {
   return remoteFetch(uri, opts).then(condRes => {
     if (condRes.status === 304) {
       condRes.body = cachedRes.body
+      // TODO - freshen up the cached entry
     } else if (condRes.status >= 500) {
       if (condRes.method.toLowerCase() === 'get') {
         return cachedRes
