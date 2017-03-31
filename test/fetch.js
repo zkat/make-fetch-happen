@@ -73,7 +73,34 @@ test('supports streaming content', t => {
   }).then(body => t.deepEqual(body, CONTENT, 'streamed body ok'))
 })
 
-test('supports proxy configurations')
+test('supports proxy configurations', t => {
+  t.plan(3)
+  // Gotta do this manually 'cause nock's interception breaks proxies
+  const srv = require('http').createServer((req, res) => {
+    t.equal(req.headers.host, 'npm.im:80', 'proxy target host received')
+    res.write(CONTENT, () => {
+      res.end(() => {
+        req.socket.end(() => {
+          srv.close(() => {
+            t.ok(true, 'server closed')
+          })
+        })
+      })
+    })
+  }).listen(9854)
+  fetch(`http://npm.im/make-fetch-happen`, {
+    proxy: 'http://localhost:9854',
+    retry: {
+      retries: 0
+    }
+  }).then(res => {
+    return res.buffer()
+  }).then(buf => {
+    t.deepEqual(buf, CONTENT, 'request succeeded')
+  })
+})
+
+test('supports custom agent config')
 
 test('handles 15 concurrent requests', t => {
   const srv = tnock(t, HOST)
