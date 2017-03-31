@@ -166,7 +166,7 @@ function getAgent (uri, opts) {
         agentOpts[k] = opts.proxyOpts[k]
       })
     }
-    if (opts.proxy && !ProxyAgent) {
+    if (!ProxyAgent) {
       ProxyAgent = require('proxy-agent')
     }
     return new ProxyAgent(agentOpts)
