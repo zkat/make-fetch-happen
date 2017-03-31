@@ -16,6 +16,7 @@ module.exports = cachingFetch
 function cachingFetch (uri, _opts) {
   const opts = {}
   Object.keys(_opts || {}).forEach(k => { opts[k] = _opts[k] })
+  opts.method = opts.method && opts.method.toUpperCase()
   if (typeof opts.cacheManager === 'string' && !Cache) { Cache = require('./cache') }
   opts.cacheManager = opts.cacheManager && (
     typeof opts.cacheManager === 'string'
@@ -34,7 +35,7 @@ function cachingFetch (uri, _opts) {
     opts.cache = 'no-store'
   }
   if (
-    (!opts.method || opts.method.toLowerCase() === 'get') &&
+    (!opts.method || opts.method === 'GET') &&
     opts.cacheManager &&
     opts.cache !== 'no-store' &&
     opts.cache !== 'reload'
@@ -98,13 +99,13 @@ function condFetch (uri, cachedRes, opts) {
     newHeaders[k] = opts.headers[k]
   })
   if (cachedRes.headers.get('etag')) {
-    const condHeader = opts.method && opts.method.toLowerCase() !== 'get'
+    const condHeader = opts.method && opts.method !== 'GET'
     ? 'if-match'
     : 'if-none-match'
     newHeaders[condHeader] = cachedRes.headers.get('etag')
   }
   if (cachedRes.headers.get('last-modified')) {
-    const condHeader = opts.method && opts.method.toLowerCase() !== 'get'
+    const condHeader = opts.method && opts.method !== 'GET'
     ? 'if-unmodified-since'
     : 'if-modified-since'
     newHeaders[condHeader] = cachedRes.headers.get('last-modified')
@@ -115,13 +116,13 @@ function condFetch (uri, cachedRes, opts) {
       condRes.body = cachedRes.body
       // TODO - freshen up the cached entry
     } else if (condRes.status >= 500) {
-      if (condRes.method.toLowerCase() === 'get') {
+      if (condRes.method === 'GET') {
         return cachedRes
       } else {
         return opts.cacheManager.delete(uri).then(() => cachedRes)
       }
     }
-    if (condRes.method.toLowerCase() !== 'get') {
+    if (condRes.method !== 'GET') {
       return opts.cacheManager.delete(uri).then(() => condRes)
     } else {
       return condRes
@@ -149,20 +150,20 @@ function remoteFetch (uri, opts) {
     const req = new fetch.Request(uri, reqOpts)
     return fetch(req).then(res => {
       if (
-        req.method.toLowerCase() === 'get' &&
+        req.method === 'GET' &&
         opts.cacheManager &&
         opts.cache !== 'no-store' &&
         // No other statuses should be stored!
         res.status === 200
       ) {
         return opts.cacheManager.put(req, res, opts.cacheOpts)
-      } else if (req.method.toLowerCase() !== 'post' && res.status >= 500) {
+      } else if (req.method !== 'POST' && res.status >= 500) {
         return retryHandler(res)
       } else {
         return res
       }
     }).catch(err => {
-      if (req.method.toLowerCase() !== 'post') {
+      if (req.method !== 'POST') {
         return retryHandler(err)
       } else {
         throw err
