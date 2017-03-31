@@ -59,6 +59,7 @@ function isStale (res) {
   return maxAge <= currentAge
 }
 
+// https://tools.ietf.org/html/rfc7234#section-4.2.1
 function freshnessLifetime (res) {
   const cacheControl = res.headers.get('Cache-Control') || ''
   const maxAgeMatch = cacheControl.match(/(?:s-maxage|max-age):\s*(\d+)/)
