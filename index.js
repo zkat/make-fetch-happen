@@ -16,35 +16,35 @@ module.exports = cachingFetch
 function cachingFetch (uri, _opts) {
   const opts = {}
   Object.keys(_opts || {}).forEach(k => { opts[k] = _opts[k] })
-  if (typeof opts.cache === 'string' && !Cache) { Cache = require('./cache') }
-  opts.cache = opts.cache && (
-    typeof opts.cache === 'string'
-    ? new Cache(opts.cache, opts.cacheOpts)
-    : opts.cache
+  if (typeof opts.cacheManager === 'string' && !Cache) { Cache = require('./cache') }
+  opts.cacheManager = opts.cacheManager && (
+    typeof opts.cacheManager === 'string'
+    ? new Cache(opts.cacheManager, opts.cacheOpts)
+    : opts.cacheManager
   )
-  opts.cacheMode = opts.cache && (opts.cacheMode || 'default')
+  opts.cache = opts.cacheManager && (opts.cache || 'default')
   if (
-    opts.cache &&
-    opts.cacheMode === 'default' &&
+    opts.cacheManager &&
+    opts.cache === 'default' &&
     isConditional(opts.headers || {})
   ) {
     // If header list contains `If-Modified-Since`, `If-None-Match`,
     // `If-Unmodified-Since`, `If-Match`, or `If-Range`, fetch will set cache
     // mode to "no-store" if it is "default".
-    opts.cacheMode = 'no-store'
+    opts.cache = 'no-store'
   }
   if (
     (!opts.method || opts.method.toLowerCase() === 'get') &&
-    opts.cache &&
-    opts.cacheMode !== 'no-store' &&
-    opts.cacheMode !== 'reload'
+    opts.cacheManager &&
+    opts.cache !== 'no-store' &&
+    opts.cache !== 'reload'
   ) {
-    return opts.cache.match(uri, opts.cacheOpts).then(res => {
-      if (res && opts.cacheMode === 'default' && !isStale(res)) {
+    return opts.cacheManager.match(uri, opts.cacheOpts).then(res => {
+      if (res && opts.cache === 'default' && !isStale(res)) {
         return res
-      } else if (res && (opts.cacheMode === 'default' || opts.cacheMode === 'no-cache')) {
+      } else if (res && (opts.cache === 'default' || opts.cache === 'no-cache')) {
         return condFetch(uri, res, opts)
-      } else if (!res && opts.cacheMode === 'only-if-cached') {
+      } else if (!res && opts.cache === 'only-if-cached') {
         throw new Error(`request to ${uri} failed: cache mode is 'only-if-cached' but no cached response available.`)
       } else {
         // Missing cache entry, stale default, reload, no-store
@@ -118,11 +118,11 @@ function condFetch (uri, cachedRes, opts) {
       if (condRes.method.toLowerCase() === 'get') {
         return cachedRes
       } else {
-        return opts.cache.delete(uri).then(() => cachedRes)
+        return opts.cacheManager.delete(uri).then(() => cachedRes)
       }
     }
     if (condRes.method.toLowerCase() !== 'get') {
-      return opts.cache.delete(uri).then(() => condRes)
+      return opts.cacheManager.delete(uri).then(() => condRes)
     } else {
       return condRes
     }
@@ -150,12 +150,12 @@ function remoteFetch (uri, opts) {
     return fetch(req).then(res => {
       if (
         req.method.toLowerCase() === 'get' &&
-        opts.cache &&
-        opts.cacheMode !== 'no-store' &&
+        opts.cacheManager &&
+        opts.cache !== 'no-store' &&
         // No other statuses should be stored!
         res.status === 200
       ) {
-        return opts.cache.put(req, res, opts.cacheOpts)
+        return opts.cacheManager.put(req, res, opts.cacheOpts)
       } else if (req.method.toLowerCase() !== 'post' && res.status >= 500) {
         return retryHandler(res)
       } else {
