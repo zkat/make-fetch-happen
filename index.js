@@ -16,7 +16,7 @@ module.exports = cachingFetch
 function cachingFetch (uri, _opts) {
   const opts = {}
   Object.keys(_opts || {}).forEach(k => { opts[k] = _opts[k] })
-  opts.method = opts.method && opts.method.toUpperCase()
+  opts.method = (opts.method || 'GET').toUpperCase()
   if (typeof opts.cacheManager === 'string' && !Cache) {
     // Default cacache-based cache
     Cache = require('./cache')
@@ -38,12 +38,16 @@ function cachingFetch (uri, _opts) {
     opts.cache = 'no-store'
   }
   if (
-    (!opts.method || opts.method === 'GET') &&
+    (opts.method === 'GET' || opts.method === 'HEAD') &&
     opts.cacheManager &&
     opts.cache !== 'no-store' &&
     opts.cache !== 'reload'
   ) {
-    return opts.cacheManager.match(uri, opts.cacheOpts).then(res => {
+    const req = new fetch.Request(uri, {
+      method: opts.method,
+      headers: opts.headers
+    })
+    return opts.cacheManager.match(req, opts.cacheOpts).then(res => {
       if (res && opts.cache === 'default' && !isStale(res)) {
         return res
       } else if (res && (opts.cache === 'default' || opts.cache === 'no-cache')) {
@@ -63,6 +67,13 @@ function cachingFetch (uri, _opts) {
 // https://tools.ietf.org/html/rfc7234#section-4.2
 function isStale (res) {
   if (!res) { return null }
+  const ctrl = res.headers.get('Cache-Control') || ''
+  if (ctrl.match(/must-revalidate/i)) {
+    return true
+  }
+  if (ctrl.match(/immutable/i)) {
+    return false
+  }
   const maxAge = freshnessLifetime(res)
   const currentAge = (new Date() - new Date(res.headers.get('Date') || new Date())) / 1000
   return maxAge <= currentAge
@@ -71,8 +82,12 @@ function isStale (res) {
 // https://tools.ietf.org/html/rfc7234#section-4.2.1
 function freshnessLifetime (res) {
   const cacheControl = res.headers.get('Cache-Control') || ''
-  const maxAgeMatch = cacheControl.match(/(s-maxage|max-age)\s*=\s*(\d+)/i)
-  const noCacheMatch = cacheControl.match(/no-cache/i)
+  const pragma = res.headers.get('Pragma') || ''
+  const maxAgeMatch = cacheControl.match(/(?:s-maxage|max-age)\s*=\s*(\d+)/i)
+  const noCacheMatch = (
+    cacheControl.match(/no-cache/i) ||
+    pragma.match(/no-cache/i)
+  )
   if (noCacheMatch) {
     // no-cache requires revalidation on every request
     return 0
@@ -91,7 +106,9 @@ function freshnessLifetime (res) {
 function heuristicFreshness (res) {
   const lastMod = res.headers.get('Last-Modified')
   const date = new Date(res.headers.get('Date') || new Date())
-  !res.headers.get('Warning') && res.headers.set('Warning', 113)
+  !res.headers.get('Warning') && setWarning(
+    res, 113, 'Used heuristics to calculate cache freshness'
+  )
   if (lastMod) {
     const age = (date - new Date(lastMod)) / 1000
     return Math.min(age * 0.1, 300)
@@ -101,43 +118,58 @@ function heuristicFreshness (res) {
 }
 
 function condFetch (uri, cachedRes, opts) {
+  const ctrl = cachedRes.headers.get('cache-control') || ''
   const newHeaders = {}
   Object.keys(opts.headers || {}).forEach(k => {
     newHeaders[k] = opts.headers[k]
   })
   if (cachedRes.headers.get('etag')) {
-    const condHeader = opts.method && opts.method !== 'GET'
+    const condHeader = opts.method !== 'GET'
     ? 'if-match'
     : 'if-none-match'
     newHeaders[condHeader] = cachedRes.headers.get('etag')
   }
   if (cachedRes.headers.get('last-modified')) {
-    const condHeader = opts.method && opts.method !== 'GET'
+    const condHeader = opts.method !== 'GET' && opts.method !== 'HEAD'
     ? 'if-unmodified-since'
     : 'if-modified-since'
     newHeaders[condHeader] = cachedRes.headers.get('last-modified')
   }
   opts.headers = newHeaders
+  if (isStale(cachedRes)) {
+    setWarning(cachedRes, 110, 'Local cached response stale')
+  }
   return remoteFetch(uri, opts).then(condRes => {
-    const ctrl = cachedRes.headers.get('cache-control') || ''
     if (condRes.status === 304) {
-      // TODO - freshen up the cached entry
       condRes.body = cachedRes.body
+      condRes.headers.set('Warning', cachedRes.headers.get('Warning'))
     } else if (condRes.status >= 500 && !ctrl.match(/must-revalidate/i)) {
-      if (condRes.method === 'GET') {
-        return cachedRes
-      } else {
-        return opts.cacheManager.delete(uri).then(() => cachedRes)
-      }
+      setWarning(
+        cachedRes, 111, `Revalidation failed. Returning stale response`
+      )
+      return cachedRes
     }
-    if (condRes.method !== 'GET') {
-      return opts.cacheManager.delete(uri).then(() => condRes)
+    return condRes
+  }).catch(err => {
+    if (ctrl.match(/must-revalidate/i)) {
+      throw err
     } else {
-      return condRes
+      setWarning(cachedRes, 111, `Unexpected error: ${err.message}`)
+      return cachedRes
     }
-  }).catch(() => {
-    return cachedRes
   })
+}
+
+function setWarning (reqOrRes, code, message, host) {
+  host = host || 'localhost'
+  reqOrRes.headers.set(
+    'Warning',
+    `${code} ${host} ${
+      JSON.stringify(message)
+    } ${
+      JSON.stringify(new Date().toUTCString)
+    }`
+  )
 }
 
 function remoteFetch (uri, opts) {
@@ -151,22 +183,40 @@ function remoteFetch (uri, opts) {
       headers[k] = opts.headers[k]
     })
   }
-  const reqOpts = Object.create(opts)
-  reqOpts.headers = headers
-  reqOpts.agent = agent
+  const reqOpts = {
+    agent,
+    body: opts.body,
+    compress: opts.compress,
+    follow: opts.follow,
+    headers,
+    method: opts.method,
+    redirect: opts.redirect,
+    size: opts.size,
+    timeout: opts.timeout
+  }
   return retry((retryHandler, attemptNum) => {
     const req = new fetch.Request(uri, reqOpts)
     return fetch(req).then(res => {
       const cacheCtrl = res.headers.get('cache-control') || ''
       if (
-        req.method === 'GET' &&
+        (req.method === 'GET' || req.method === 'HEAD') &&
         opts.cacheManager &&
         !cacheCtrl.match(/no-store/i) &&
         opts.cache !== 'no-store' &&
         // No other statuses should be stored!
-        res.status === 200
+        (res.status === 200 || res.status === 304)
       ) {
         return opts.cacheManager.put(req, res, opts.cacheOpts)
+      } else if (opts.cacheManager && (
+        (req.method !== 'GET' && req.method !== 'PUT')
+      )) {
+        return opts.cacheManager.delete(req, opts.cacheOpts).then(() => {
+          if (req.method !== 'POST' && res.status >= 500) {
+            return retryHandler(res)
+          } else {
+            return res
+          }
+        })
       } else if (req.method !== 'POST' && res.status >= 500) {
         return retryHandler(res)
       } else {
@@ -179,7 +229,13 @@ function remoteFetch (uri, opts) {
         throw err
       }
     })
-  }, opts.retry)
+  }, opts.retry).catch(err => {
+    if (err.status >= 500) {
+      return err
+    } else {
+      throw err
+    }
+  })
 }
 
 function getAgent (uri, opts) {
