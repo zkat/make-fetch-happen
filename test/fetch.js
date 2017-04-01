@@ -186,7 +186,7 @@ test('supports opts.timeout for controlling request timeout time', t => {
 test('retries non-POST requests on timeouts', t => {
   const srv = tnock(t, HOST)
   let attempt = 0
-  srv.get('/test').delay(50).times(4).reply(200, () => {
+  srv.get('/test').delay(100).times(4).reply(200, () => {
     attempt++
     if (attempt >= 4) {
       srv.get('/test').reply(200, CONTENT)
@@ -194,7 +194,7 @@ test('retries non-POST requests on timeouts', t => {
     return null
   })
   return fetch(`${HOST}/test`, {
-    timeout: 1,
+    timeout: 50,
     retry: {
       retries: 4,
       minTimeout: 5
