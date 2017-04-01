@@ -183,7 +183,7 @@ function setWarning (reqOrRes, code, message, host) {
 function remoteFetch (uri, opts) {
   const agent = getAgent(uri, opts)
   const headers = {
-    'connection': agent != null ? 'keep-alive' : 'close',
+    'connection': agent ? 'keep-alive' : 'close',
     'user-agent': `${pkg.name}/${pkg.version} (+https://npm.im/${pkg.name})`
   }
   if (opts.headers) {
@@ -265,8 +265,6 @@ function getAgent (uri, opts) {
     return https.globalAgent
   } else if (url.parse(uri).protocol === 'http:') {
     return http.globalAgent
-  } else {
-    return null
   }
 }
 
