@@ -230,7 +230,7 @@ function remoteFetch (uri, opts) {
           if (res.status >= 500) {
             if (req.method === 'POST') {
               return res
-            } else if (req.method === 'PUT' && req.body instanceof Stream) {
+            } else if (req.body instanceof Stream) {
               return res
             } else {
               return retryHandler(res)
@@ -242,7 +242,7 @@ function remoteFetch (uri, opts) {
       } else if (res.status >= 500) {
         if (req.method === 'POST') {
           return res
-        } else if (req.method === 'PUT' && req.body instanceof Stream) {
+        } else if (req.body instanceof Stream) {
           return res
         } else {
           return retryHandler(res)
