@@ -257,7 +257,7 @@ function remoteFetch (uri, opts) {
         throw err
       }
     })
-  }, opts.retry).catch(err => {
+  }, opts.retry === false ? { retries: 0 } : opts.retry).catch(err => {
     if (err.status >= 500) {
       return err
     } else {
