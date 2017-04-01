@@ -9,8 +9,6 @@ const pkg = require('./package.json')
 const retry = require('promise-retry')
 const url = require('url')
 
-// The "cache mode" options are really confusing, and this module does
-// its best to recreate them:
 // https://fetch.spec.whatwg.org/#http-network-or-cache-fetch
 module.exports = cachingFetch
 function cachingFetch (uri, _opts) {
@@ -52,8 +50,18 @@ function cachingFetch (uri, _opts) {
         return res
       } else if (res && (opts.cache === 'default' || opts.cache === 'no-cache')) {
         return condFetch(uri, res, opts)
+      } else if (res && (
+        opts.cache === 'force-cache' || opts.cache === 'only-if-cached'
+      )) {
+        return res
       } else if (!res && opts.cache === 'only-if-cached') {
-        throw new Error(`request to ${uri} failed: cache mode is 'only-if-cached' but no cached response available.`)
+        const err = new Error(
+          `request to ${
+            uri
+          } failed: cache mode is 'only-if-cached' but no cached response available.`
+        )
+        err.code = 'ENOTCACHED'
+        throw err
       } else {
         // Missing cache entry, or mode is default (if stale), reload, no-store
         return remoteFetch(uri, opts)
