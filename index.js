@@ -216,7 +216,7 @@ function remoteFetch (uri, opts) {
       ) {
         return opts.cacheManager.put(req, res, opts.cacheOpts)
       } else if (opts.cacheManager && (
-        (req.method !== 'GET' && req.method !== 'PUT')
+        (req.method !== 'GET' && req.method !== 'HEAD')
       )) {
         return opts.cacheManager.delete(req, opts.cacheOpts).then(() => {
           if (req.method !== 'POST' && res.status >= 500) {
