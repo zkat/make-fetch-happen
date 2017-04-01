@@ -47,6 +47,13 @@ function cachingFetch (uri, _opts) {
       headers: opts.headers
     })
     return opts.cacheManager.match(req, opts.cacheOpts).then(res => {
+      if (res) {
+        const warningCode = (res.headers.get('Warning') || '').match(/^\d+/)
+        if (warningCode && +warningCode >= 100 && +warningCode < 200) {
+          // https://tools.ietf.org/html/rfc7234#section-4.3.4
+          res.headers.delete('Warning')
+        }
+      }
       if (res && opts.cache === 'default' && !isStale(res)) {
         return res
       } else if (res && (opts.cache === 'default' || opts.cache === 'no-cache')) {

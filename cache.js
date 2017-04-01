@@ -105,11 +105,6 @@ module.exports = class Cache {
   put (req, response) {
     const size = response.headers.get('content-length')
     const fitInMemory = !!size && size < MAX_MEM_SIZE
-    const warningCode = (response.headers.get('Warning') || '').match(/^\d+/)
-    if (warningCode && +warningCode >= 100 && +warningCode < 200) {
-      // https://tools.ietf.org/html/rfc7234#section-4.3.4
-      response.headers.delete('Warning')
-    }
     const opts = {
       metadata: {
         url: req.url,
