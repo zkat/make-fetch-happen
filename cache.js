@@ -37,8 +37,7 @@ module.exports = class Cache {
 
   // Returns a Promise that resolves to the response associated with the first
   // matching request in the Cache object.
-  match (request, opts) {
-    const req = new fetch.Request(request)
+  match (req) {
     return cacache.get.info(this._path, cacheKey(req)).then(info => {
       if (info && matchDetails(req, {
         url: info.metadata.url,
@@ -103,8 +102,7 @@ module.exports = class Cache {
   }
 
   // Takes both a request and its response and adds it to the given cache.
-  put (request, response) {
-    const req = new fetch.Request(request)
+  put (req, response) {
     const size = response.headers.get('content-length')
     const fitInMemory = !!size && size < MAX_MEM_SIZE
     const warningCode = (response.headers.get('Warning') || '').match(/^\d+/)
@@ -193,8 +191,7 @@ module.exports = class Cache {
   // Finds the Cache entry whose key is the request, and if found, deletes the
   // Cache entry and returns a Promise that resolves to true. If no Cache entry
   // is found, it returns false.
-  'delete' (request, options) {
-    const req = new fetch.Request(request)
+  'delete' (req) {
     return cacache.rm.entry(
       this._path,
       cacheKey(req)
