@@ -195,7 +195,7 @@ module.exports = class Cache {
   }
 }
 
-function matchDetails (req, cached, opts) {
+function matchDetails (req, cached) {
   const reqUrl = url.parse(req.url)
   const cacheUrl = url.parse(cached.url)
   const vary = cached.resHeaders.get('Vary')
