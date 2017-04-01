@@ -271,16 +271,10 @@ function getAgent (uri, opts) {
     // `agent: false` has special behavior!
     return opts.agent
   } else if (opts.proxy) {
-    const agentOpts = url.parse(opts.proxy || uri)
-    if (opts.proxyOpts) {
-      Object.keys(opts.proxyOpts).forEach(k => {
-        agentOpts[k] = opts.proxyOpts[k]
-      })
-    }
     if (!ProxyAgent) {
       ProxyAgent = require('proxy-agent')
     }
-    return new ProxyAgent(agentOpts)
+    return new ProxyAgent(opts.proxy)
   } else if (url.parse(uri).protocol === 'https:') {
     return https.globalAgent
   } else if (url.parse(uri).protocol === 'http:') {
