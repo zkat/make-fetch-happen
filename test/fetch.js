@@ -22,6 +22,38 @@ test('requests remote content', t => {
   })
 })
 
+test('supports http', t => {
+  const srv = tnock(t, 'http://foo.npm')
+  srv.get('/test').reply(200, CONTENT)
+  return fetch(`http://foo.npm/test`).then(res => {
+    return res.buffer()
+  }).then(buf => {
+    t.deepEqual(buf, CONTENT, 'request succeeded')
+  })
+})
+
+test('supports https', t => {
+  const srv = tnock(t, 'https://foo.npm')
+  srv.get('/test').reply(200, CONTENT)
+  return fetch(`https://foo.npm/test`).then(res => {
+    return res.buffer()
+  }).then(buf => {
+    t.deepEqual(buf, CONTENT, 'request succeeded')
+  })
+})
+
+test('500-level responses not thrown', t => {
+  const srv = tnock(t, HOST)
+  srv.get('/test').reply(500)
+  return fetch(`${HOST}/test`, {retry: {retries: 0}}).then(res => {
+    t.equal(res.status, 500, 'got regular response w/ errcode 500')
+    srv.get('/test').reply(543)
+    return fetch(`${HOST}/test`, {retry: {retries: 0}})
+  }).then(res => {
+    t.equal(res.status, 543, 'got regular response w/ errcode 543, as given')
+  })
+})
+
 test('custom headers', t => {
   const srv = tnock(t, HOST)
   srv.get('/test').reply(200, CONTENT, {
@@ -90,6 +122,11 @@ test('supports proxy configurations', t => {
   }).listen(9854)
   fetch(`http://npm.im/make-fetch-happen`, {
     proxy: 'http://localhost:9854',
+    proxyOpts: {
+      headers: {
+        foo: 'bar'
+      }
+    },
     retry: {
       retries: 0
     }
@@ -100,11 +137,26 @@ test('supports proxy configurations', t => {
   })
 })
 
-test('supports custom agent config')
+test('supports custom agent config', t => {
+  const srv = tnock(t, HOST)
+  srv.get('/test').reply(200, function () {
+    t.equal(this.req.headers['connection'][0], 'close', 'one-shot agent!')
+    return CONTENT
+  })
+  return fetch(`${HOST}/test`, {
+    agent: false
+  }).then(res => {
+    return res.buffer()
+  }).then(buf => {
+    t.deepEqual(buf, CONTENT, 'request succeeded')
+  })
+})
+
+test('supports automatic agent pooling on unique configs')
 
 test('handles 15 concurrent requests', t => {
   const srv = tnock(t, HOST)
-  srv.get('/test').times(15).delay(100).reply(200, CONTENT)
+  srv.get('/test').times(15).delay(50).reply(200, CONTENT)
   const requests = []
   for (let i = 0; i < 15; i++) {
     requests.push(fetch(`${HOST}/test`).then(r => r.buffer()))
@@ -120,9 +172,9 @@ test('handles 15 concurrent requests', t => {
 
 test('supports opts.timeout for controlling request timeout time', t => {
   const srv = tnock(t, HOST)
-  srv.get('/test').delay(100).reply(200, CONTENT)
+  srv.get('/test').delay(10).reply(200, CONTENT)
   return fetch(`${HOST}/test`, {
-    timeout: 10,
+    timeout: 1,
     retry: { retries: 0 }
   }).then(res => {
     throw new Error('unexpected req success')
@@ -134,7 +186,7 @@ test('supports opts.timeout for controlling request timeout time', t => {
 test('retries non-POST requests on timeouts', t => {
   const srv = tnock(t, HOST)
   let attempt = 0
-  srv.get('/test').delay(100).times(4).reply(200, () => {
+  srv.get('/test').delay(50).times(4).reply(200, () => {
     attempt++
     if (attempt >= 4) {
       srv.get('/test').reply(200, CONTENT)
@@ -142,25 +194,25 @@ test('retries non-POST requests on timeouts', t => {
     return null
   })
   return fetch(`${HOST}/test`, {
-    timeout: 10,
+    timeout: 1,
     retry: {
       retries: 4,
       minTimeout: 5
     }
   }).then(res => res.buffer()).then(buf => {
     t.deepEqual(buf, CONTENT, 'request retried until success')
-    srv.get('/test').delay(100).twice().reply(200)
+    srv.get('/test').delay(10).twice().reply(200)
     return fetch(`${HOST}/test`, {
-      timeout: 10,
+      timeout: 1,
       retry: {retries: 1, minTimeout: 1}
     }).catch(err => {
       t.equal(err.type, 'request-timeout', 'exhausted timeout retries')
     })
   }).then(() => {
-    srv.post('/test').delay(100).reply(201)
+    srv.post('/test').delay(10).reply(201)
     return fetch(`${HOST}/test`, {
       method: 'POST',
-      timeout: 10,
+      timeout: 1,
       retry: {retries: 1, minTimeout: 1}
     }).catch(err => {
       t.equal(
@@ -190,17 +242,17 @@ test('retries non-POST requests on 500 errors', t => {
     srv.get('/test').twice().reply(500)
     return fetch(`${HOST}/test`, {
       retry: {retries: 1, minTimeout: 1}
-    }).catch(err => {
-      t.equal(err.status, 500, 'got bad request back on failure')
     })
+  }).then(res => {
+    t.equal(res.status, 500, 'got bad request back on failure')
   }).then(() => {
     srv.post('/test').reply(500)
     return fetch(`${HOST}/test`, {
       method: 'POST',
-      retry: {retries: 1, minTimeout: 1}
+      retry: {retries: 5, minTimeout: 1}
     }).catch(err => {
       t.equal(
-        err.type, 'request-timeout', 'POST got 500 error w/o retries'
+        err.type, 'request-timeout', 'got thrown error w/o retries'
       )
     })
   })
