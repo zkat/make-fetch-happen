@@ -228,6 +228,8 @@ function remoteFetch (uri, opts) {
             } else {
               return retryHandler(res)
             }
+          } else {
+            return res
           }
         })
       } else if (res.status >= 500) {
