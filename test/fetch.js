@@ -5,6 +5,7 @@ const Buffer = require('safe-buffer').Buffer
 
 const finished = BB.promisify(require('mississippi').finished)
 const test = require('tap').test
+const through = require('mississippi').through
 const tnock = require('./util/tnock')
 
 const CONTENT = Buffer.from('hello, world!', 'utf8')
@@ -250,10 +251,42 @@ test('retries non-POST requests on 500 errors', t => {
     return fetch(`${HOST}/test`, {
       method: 'POST',
       retry: {retries: 5, minTimeout: 1}
-    }).catch(err => {
-      t.equal(
-        err.type, 'request-timeout', 'got thrown error w/o retries'
-      )
+    })
+  }).then(res => {
+    t.equal(res.status, 500, 'bad post gives a 500 without retries')
+    srv.put('/test').reply(500)
+    const stream = through()
+    setTimeout(() => {
+      stream.write('bleh')
+      stream.end()
+    }, 10)
+    return fetch(`${HOST}/test`, {
+      method: 'put',
+      body: stream,
+      retry: {retries: 5, minTimeout: 1}
+    })
+  }).then(res => {
+    t.equal(res.status, 500, 'bad put does not retry because body is stream')
+    let attempt = 0
+    srv.put('/put-test').times(4).reply(() => {
+      attempt++
+      if (attempt >= 4) {
+        srv.put('/put-test').reply((uri, reqBody) => {
+          t.deepEqual(reqBody, 'great success!', 'PUT data match')
+          return [201, CONTENT, {}]
+        })
+      }
+      return [500, null, {}]
+    })
+    return fetch(`${HOST}/put-test`, {
+      method: 'put',
+      body: Buffer.from('great success!'),
+      retry: {
+        retries: 4,
+        minTimeout: 5
+      }
+    }).then(res => res.buffer()).then(body => {
+      t.deepEqual(body, CONTENT, 'got content after multiple attempts')
     })
   })
 })

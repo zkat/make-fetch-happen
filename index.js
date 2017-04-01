@@ -7,6 +7,7 @@ const https = require('https')
 let ProxyAgent
 const pkg = require('./package.json')
 const retry = require('promise-retry')
+const Stream = require('stream')
 const url = require('url')
 
 // https://fetch.spec.whatwg.org/#http-network-or-cache-fetch
@@ -219,14 +220,24 @@ function remoteFetch (uri, opts) {
         (req.method !== 'GET' && req.method !== 'HEAD')
       )) {
         return opts.cacheManager.delete(req, opts.cacheOpts).then(() => {
-          if (req.method !== 'POST' && res.status >= 500) {
-            return retryHandler(res)
-          } else {
-            return res
+          if (res.status >= 500) {
+            if (req.method === 'POST') {
+              return res
+            } else if (req.method === 'PUT' && req.body instanceof Stream) {
+              return res
+            } else {
+              return retryHandler(res)
+            }
           }
         })
-      } else if (req.method !== 'POST' && res.status >= 500) {
-        return retryHandler(res)
+      } else if (res.status >= 500) {
+        if (req.method === 'POST') {
+          return res
+        } else if (req.method === 'PUT' && req.body instanceof Stream) {
+          return res
+        } else {
+          return retryHandler(res)
+        }
       } else {
         return res
       }
