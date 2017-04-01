@@ -12,6 +12,31 @@ const url = require('url')
 
 // https://fetch.spec.whatwg.org/#http-network-or-cache-fetch
 module.exports = cachingFetch
+cachingFetch.defaults = function (_uri, _opts) {
+  const fetch = this
+  if (typeof _uri === 'object') {
+    _opts = _uri
+    _uri = null
+  }
+  function defaultedFetch (uri, opts) {
+    let finalOpts
+    if (opts && _opts) {
+      finalOpts = {}
+      Object.keys(_opts).forEach(k => { finalOpts[k] = _opts[k] })
+      Object.keys(opts).forEach(k => { finalOpts[k] = opts[k] })
+    } else if (opts) {
+      finalOpts = opts
+    } else if (_opts) {
+      finalOpts = _opts
+    } else {
+      finalOpts = {}
+    }
+    return fetch(uri || _uri, finalOpts)
+  }
+  defaultedFetch.defaults = fetch.defaults
+  return defaultedFetch
+}
+
 function cachingFetch (uri, _opts) {
   const opts = {}
   Object.keys(_opts || {}).forEach(k => { opts[k] = _opts[k] })

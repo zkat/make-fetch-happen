@@ -32,6 +32,26 @@ test('accepts a local path for caches', t => {
   })
 })
 
+test('supports defaulted fetch cache', t => {
+  tnock(t, HOST).get('/test').reply(200, CONTENT)
+  const defaultFetch = fetch.defaults({
+    cacheManager: CACHE
+  })
+  return defaultFetch(`${HOST}/test`, {
+    retry: {retries: 0}
+  }).then(res => res.buffer()).then(body => {
+    t.deepEqual(body, CONTENT, 'got remote content')
+    return defaultFetch(`${HOST}/test`, {
+      retry: {retries: 0}
+    })
+  }).then(res => {
+    t.equal(res.status, 200, 'non-stale cached res has 200 status')
+    return res.buffer()
+  }).then(body => {
+    t.deepEqual(body, CONTENT, 'got cached content')
+  })
+})
+
 test('nothing cached if body stream never used', t => {
   const srv = tnock(t, HOST)
   srv.get('/test').reply(200, CONTENT)

@@ -14,6 +14,7 @@
 * [Contributing](#contributing)
 * [API](#api)
   * [`fetch`](#fetch)
+  * [`fetch.defaults`](#fetch-defaults)
   * [`node-fetch` options](#node-fetch-options)
   * [`make-fetch-happen` options](#extra-options)
     * [`opts.cacheManager`](#opts-cache-manager)
@@ -74,6 +75,22 @@ If `opts` is provided, the [`node-fetch`-specific options](#node-fetch-options) 
 
 ```javascript
 fetch('https://google.com').then(res => res.buffer())
+```
+
+#### <a name="fetch-defaults"></a> `> fetch.defaults([defaultUrl], [defaultOpts])`
+
+Returns a new `fetch` function that will call `make-fetch-happen` using `defaultUrl` and `defaultOpts` as default values to any calls.
+
+A defaulted `fetch` will also have a `.defaults()` method, so they can be chained.
+
+##### Example
+
+```javascript
+const fetch = require('make-fetch-happen').defaults({
+  cacheManager: './my-local-cache'
+})
+
+fetch('https://registry.npmjs.org/make-fetch-happen') // will always use the cache
 ```
 
 #### <a name="node-fetch-options"></a> `> node-fetch options`
