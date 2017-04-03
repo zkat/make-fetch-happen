@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.2.1"></a>
+## [1.2.1](https://github.com/zkat/make-fetch-happen/compare/v1.2.0...v1.2.1) (2017-04-03)
+
+
+### Bug Fixes
+
+* **integrity:** update cacache and ssri and change EBADCHECKSUM -> EINTEGRITY ([b6cf6f6](https://github.com/zkat/make-fetch-happen/commit/b6cf6f6))
+
+
+
 <a name="1.2.0"></a>
 # [1.2.0](https://github.com/zkat/make-fetch-happen/compare/v1.1.0...v1.2.0) (2017-04-03)
 
