@@ -29,7 +29,7 @@ test('basic integrity verification', t => {
     }).then(buf => {
       throw new Error(`bad data: ${buf.toString('utf8')}`)
     }).catch(err => {
-      t.equal(err.code, 'EBADCHECKSUM', 'content failed checksum!')
+      t.equal(err.code, 'EINTEGRITY', 'content failed checksum!')
     })
   })
 })
@@ -51,7 +51,7 @@ test('picks the "best" algorithm', t => {
     }).then(buf => {
       throw new Error(`bad data: ${buf.toString('utf8')}`)
     }).catch(err => {
-      t.equal(err.code, 'EBADCHECKSUM', 'content validated with either sha256 or sha384 (likely the latter)')
+      t.equal(err.code, 'EINTEGRITY', 'content validated with either sha256 or sha384 (likely the latter)')
     })
   }).then(() => {
     // invalidate sha384. sha256 is still valid, in theory
@@ -61,7 +61,7 @@ test('picks the "best" algorithm', t => {
     }).then(buf => {
       throw new Error(`bad data: ${buf.toString('utf8')}`)
     }).catch(err => {
-      t.equal(err.code, 'EBADCHECKSUM', 'strongest algorithm (sha384) treated as authoritative -- sha256 not used')
+      t.equal(err.code, 'EINTEGRITY', 'strongest algorithm (sha384) treated as authoritative -- sha256 not used')
     })
   }).then(() => {
     // remove bad sha384 altogether. sha256 remains valid
@@ -92,7 +92,7 @@ test('supports multiple hashes per algorithm', t => {
     return safetch(`${HOST}/bad`).then(res => res.buffer()).then(buf => {
       throw new Error(`bad data: ${buf.toString('utf8')}`)
     }).catch(err => {
-      t.equal(err.code, 'EBADCHECKSUM', 'only the two valid contents pass')
+      t.equal(err.code, 'EINTEGRITY', 'only the two valid contents pass')
     })
   })
 })
@@ -111,7 +111,7 @@ test('checks integrity on cache fetch too', t => {
     return safetch(`${HOST}/test`).then(res => res.buffer()).then(buf => {
       throw new Error(`bad data: ${buf.toString('utf8')}`)
     }).catch(err => {
-      t.equal(err.code, 'EBADCHECKSUM', 'cached content failed checksum!')
+      t.equal(err.code, 'EINTEGRITY', 'cached content failed checksum!')
     })
   }).then(() => {
     srv.get('/test').reply(200, 'nope')
@@ -122,7 +122,7 @@ test('checks integrity on cache fetch too', t => {
     }).then(res => res.buffer()).then(buf => {
       throw new Error(`bad data: ${buf.toString('utf8')}`)
     }).catch(err => {
-      t.equal(err.code, 'EBADCHECKSUM', 'cached content failed checksum!')
+      t.equal(err.code, 'EINTEGRITY', 'cached content failed checksum!')
     })
   })
 })

@@ -281,7 +281,7 @@ fetch('http://reliable.site.com', {
 
 #### <a name="opts-integrity"></a> `> opts.integrity`
 
-Matches the response body against the given [Subresource Integrity](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity) metadata. If verification fails, the request will fail with an `EBADCHECKSUM` error.
+Matches the response body against the given [Subresource Integrity](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity) metadata. If verification fails, the request will fail with an `EINTEGRITY` error.
 
 `integrity` may either be a string or an [`ssri`](https://npm.im/ssri) `Integrity`-like.
 
@@ -294,7 +294,7 @@ fetch('https://registry.npmjs.org/make-fetch-happen/-/make-fetch-happen-1.0.0.tg
 
 fetch('https://malicious-registry.org/make-fetch-happen/-/make-fetch-happen-1.0.0.tgz'. {
   integrity: 'sha1-o47j7zAYnedYFn1dF/fR9OV3z8Q='
-}) // Error: EBADCHECKSUM
+}) // Error: EINTEGRITY
 ```
 
 ### <a name="wow"></a> Message From Our Sponsors
