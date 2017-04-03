@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.2.0"></a>
+# [1.2.0](https://github.com/zkat/make-fetch-happen/compare/v1.1.0...v1.2.0) (2017-04-03)
+
+
+### Features
+
+* **integrity:** full Subresource Integrity support (#10) ([a590159](https://github.com/zkat/make-fetch-happen/commit/a590159))
+
+
+
 <a name="1.1.0"></a>
 # [1.1.0](https://github.com/zkat/make-fetch-happen/compare/v1.0.1...v1.1.0) (2017-04-01)
 
