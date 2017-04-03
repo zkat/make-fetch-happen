@@ -7,6 +7,7 @@ const https = require('https')
 let ProxyAgent
 const pkg = require('./package.json')
 const retry = require('promise-retry')
+let ssri
 const Stream = require('stream')
 const url = require('url')
 
@@ -45,6 +46,9 @@ function cachingFetch (uri, _opts) {
     // Default cacache-based cache
     Cache = require('./cache')
   }
+  if (opts.integrity && !ssri) {
+    ssri = require('ssri')
+  }
   opts.cacheManager = opts.cacheManager && (
     typeof opts.cacheManager === 'string'
     ? new Cache(opts.cacheManager, opts.cacheOpts)
@@ -71,7 +75,7 @@ function cachingFetch (uri, _opts) {
       method: opts.method,
       headers: opts.headers
     })
-    return opts.cacheManager.match(req, opts.cacheOpts).then(res => {
+    return opts.cacheManager.match(req, opts).then(res => {
       if (res) {
         const warningCode = (res.headers.get('Warning') || '').match(/^\d+/)
         if (warningCode && +warningCode >= 100 && +warningCode < 200) {
@@ -238,6 +242,20 @@ function remoteFetch (uri, opts) {
   return retry((retryHandler, attemptNum) => {
     const req = new fetch.Request(uri, reqOpts)
     return fetch(req).then(res => {
+      if (opts.integrity) {
+        const oldBod = res.body
+        const newBod = ssri.integrityStream({
+          integrity: opts.integrity
+        })
+        oldBod.pipe(newBod)
+        res.body = newBod
+        oldBod.once('error', err => {
+          newBod.emit('error', err)
+        })
+        newBod.once('error', err => {
+          oldBod.emit('error', err)
+        })
+      }
       const cacheCtrl = res.headers.get('cache-control') || ''
       if (
         (req.method === 'GET' || req.method === 'HEAD') &&
