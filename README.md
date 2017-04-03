@@ -281,11 +281,9 @@ fetch('http://reliable.site.com', {
 
 #### <a name="opts-integrity"></a> `> opts.integrity`
 
-**(NOT IMPLEMENTED YET)**
-
 Matches the response body against the given [Subresource Integrity](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity) metadata. If verification fails, the request will fail with an `EBADCHECKSUM` error.
 
-`integrity` may either be a string or an [`ssri`](https://npm.im/ssri) Integrity-like.
+`integrity` may either be a string or an [`ssri`](https://npm.im/ssri) `Integrity`-like.
 
 ##### Example
 

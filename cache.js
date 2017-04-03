@@ -4,6 +4,7 @@ const cacache = require('cacache')
 const fetch = require('node-fetch')
 const fs = require('fs')
 const pipe = require('mississippi').pipe
+const ssri = require('ssri')
 const through = require('mississippi').through
 const to = require('mississippi').to
 const url = require('url')
@@ -37,12 +38,14 @@ module.exports = class Cache {
 
   // Returns a Promise that resolves to the response associated with the first
   // matching request in the Cache object.
-  match (req) {
+  match (req, opts) {
     return cacache.get.info(this._path, cacheKey(req)).then(info => {
       if (info && matchDetails(req, {
         url: info.metadata.url,
         reqHeaders: new fetch.Headers(info.metadata.reqHeaders),
-        resHeaders: new fetch.Headers(info.metadata.resHeaders)
+        resHeaders: new fetch.Headers(info.metadata.resHeaders),
+        cacheIntegrity: info.integrity,
+        integrity: opts && opts.integrity
       })) {
         if (req.method === 'HEAD') {
           return new fetch.Response(null, {
@@ -70,13 +73,14 @@ module.exports = class Cache {
             } else {
               disturbed = true
               if (stat.size > MAX_MEM_SIZE) {
-                pipe(cacache.get.stream.byDigest(cachePath, info.digest, {
-                  hashAlgorithm: info.hashAlgorithm
-                }), body, () => {})
+                pipe(
+                  cacache.get.stream.byDigest(cachePath, info.integrity),
+                  body,
+                  () => {}
+                )
               } else {
                 // cacache is much faster at bulk reads
-                cacache.get.byDigest(cachePath, info.digest, {
-                  hashAlgorithm: info.hashAlgorithm,
+                cacache.get.byDigest(cachePath, info.integrity, {
                   memoize: true
                 }).then(data => {
                   body.write(data, () => {
@@ -120,11 +124,10 @@ module.exports = class Cache {
       // Update metadata without writing
       return cacache.get.info(this._path, cacheKey(req)).then(info => {
         // Providing these will bypass content write
-        opts.hashAlgorithm = info.hashAlgorithm
-        opts.digest = info.digest
+        opts.integrity = info.integrity
         return new this.Promise((resolve, reject) => {
           pipe(
-            cacache.get.stream.byDigest(this._path, info.digest, opts),
+            cacache.get.stream.byDigest(this._path, info.integrity, opts),
             cacache.put.stream(this._path, cacheKey(req), opts),
             err => err ? reject(err) : resolve(response)
           )
@@ -210,6 +213,17 @@ function matchDetails (req, cached) {
       if (!fieldsMatch) {
         return false
       }
+    }
+  }
+  if (cached.integrity) {
+    const cachedSri = ssri.parse(cached.cacheIntegrity)
+    const sri = ssri.parse(cached.integrity)
+    const algo = sri.pickAlgorithm()
+    if (cachedSri[algo] && !sri[algo].some(hash => {
+      // cachedSri always has exactly one item per algorithm
+      return cachedSri[algo][0].digest === hash.digest
+    })) {
+      return false
     }
   }
   reqUrl.hash = null
