@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.3.0"></a>
+# [1.3.0](https://github.com/zkat/make-fetch-happen/compare/v1.2.1...v1.3.0) (2017-04-04)
+
+
+### Bug Fixes
+
+* **cache:** if metadata is missing for some odd reason, ignore the entry ([a021a6b](https://github.com/zkat/make-fetch-happen/commit/a021a6b))
+
+
+### Features
+
+* **cache:** add special headers when request was loaded straight from cache ([8a7dbd1](https://github.com/zkat/make-fetch-happen/commit/8a7dbd1))
+* **cache:** allow configuring algorithms to be calculated on insertion ([bf4a0f2](https://github.com/zkat/make-fetch-happen/commit/bf4a0f2))
+
+
+
 <a name="1.2.1"></a>
 ## [1.2.1](https://github.com/zkat/make-fetch-happen/compare/v1.2.0...v1.2.1) (2017-04-03)
 
