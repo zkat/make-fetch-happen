@@ -102,8 +102,12 @@ module.exports = class Cache {
             status: 200,
             size: stat.size
           })
-        }).catch({code: 'ENOENT'}, () => {
-          return null
+        }).catch(err => {
+          if (err.code === 'ENOENT') {
+            return null
+          } else {
+            throw err
+          }
         })
       }
     })
