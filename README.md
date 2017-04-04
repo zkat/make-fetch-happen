@@ -56,6 +56,7 @@ fetch('https://registry.npmjs.org/make-fetch-happen', {
 * Customize cache storage with any [Cache API](https://developer.mozilla.org/en-US/docs/Web/API/Cache)-compliant `Cache` instance. Cache to Redis!
 * Node.js Stream support
 * Transparent gzip and deflate support
+* Literally punches nazis
 * (PENDING) Range request caching and resuming
 * (PENDING) [Subresource Integrity](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity) support
 
