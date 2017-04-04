@@ -59,13 +59,14 @@ module.exports = class Cache {
         }
         return new this.Promise((resolve, reject) => {
           fs.stat(info.path, (err, stat) => {
-            if (err) {
-              return reject(err)
+            if (err && err !== 'ENOENT') {
+              return resolve(err)
             } else {
               return resolve(stat)
             }
           })
         }).then(stat => {
+          if (!stat) { return }
           const cachePath = this._path
           let disturbed = false
           // avoid opening cache file handles until a user actually tries to
