@@ -265,7 +265,7 @@ function remoteFetch (uri, opts) {
         // No other statuses should be stored!
         (res.status === 200 || res.status === 304)
       ) {
-        return opts.cacheManager.put(req, res, opts.cacheOpts)
+        return opts.cacheManager.put(req, res, opts)
       } else if (opts.cacheManager && (
         (req.method !== 'GET' && req.method !== 'HEAD')
       )) {

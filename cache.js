@@ -109,10 +109,11 @@ module.exports = class Cache {
   }
 
   // Takes both a request and its response and adds it to the given cache.
-  put (req, response) {
+  put (req, response, opts) {
     const size = response.headers.get('content-length')
     const fitInMemory = !!size && size < MAX_MEM_SIZE
-    const opts = {
+    const cacheOpts = {
+      algorithms: opts.algorithms,
       metadata: {
         url: req.url,
         reqHeaders: req.headers.raw(),
@@ -127,11 +128,11 @@ module.exports = class Cache {
       // Update metadata without writing
       return cacache.get.info(this._path, cacheKey(req)).then(info => {
         // Providing these will bypass content write
-        opts.integrity = info.integrity
+        cacheOpts.integrity = info.integrity
         return new this.Promise((resolve, reject) => {
           pipe(
-            cacache.get.stream.byDigest(this._path, info.integrity, opts),
-            cacache.put.stream(this._path, cacheKey(req), opts),
+            cacache.get.stream.byDigest(this._path, info.integrity, cacheOpts),
+            cacache.put.stream(this._path, cacheKey(req), cacheOpts),
             err => err ? reject(err) : resolve(response)
           )
         })
@@ -154,7 +155,7 @@ module.exports = class Cache {
               cachePath,
               cacheKey(req),
               Buffer.concat(buf, bufSize),
-              opts
+              cacheOpts
             ).then(
               () => done(),
               done
@@ -162,7 +163,7 @@ module.exports = class Cache {
           })
         } else {
           cacheTargetStream =
-          cacache.put.stream(cachePath, cacheKey(req), opts)
+          cacache.put.stream(cachePath, cacheKey(req), cacheOpts)
         }
       }
       cacheTargetStream.write(chunk, enc, cb)
