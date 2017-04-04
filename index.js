@@ -283,7 +283,8 @@ function remoteFetch (uri, opts) {
             return res
           }
         })
-      } else if (res.status >= 500) {
+      } else if (res.status === 408 || res.status >= 500) {
+        // 408 === timeout
         if (req.method === 'POST') {
           return res
         } else if (req.body instanceof Stream) {
@@ -302,7 +303,7 @@ function remoteFetch (uri, opts) {
       }
     })
   }, opts.retry === false ? { retries: 0 } : opts.retry).catch(err => {
-    if (err.status >= 500) {
+    if (err.status >= 500 || err.status === 408) {
       return err
     } else {
       throw err
