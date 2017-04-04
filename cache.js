@@ -40,7 +40,7 @@ module.exports = class Cache {
   // matching request in the Cache object.
   match (req, opts) {
     return cacache.get.info(this._path, cacheKey(req)).then(info => {
-      if (info && matchDetails(req, {
+      if (info && info.metadata && matchDetails(req, {
         url: info.metadata.url,
         reqHeaders: new fetch.Headers(info.metadata.reqHeaders),
         resHeaders: new fetch.Headers(info.metadata.resHeaders),
