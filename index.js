@@ -242,6 +242,7 @@ function remoteFetch (uri, opts) {
   return retry((retryHandler, attemptNum) => {
     const req = new fetch.Request(uri, reqOpts)
     return fetch(req).then(res => {
+      res.headers.set('x-fetch-attempts', attemptNum)
       if (opts.integrity) {
         const oldBod = res.body
         const newBod = ssri.integrityStream({
