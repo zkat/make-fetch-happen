@@ -47,10 +47,13 @@ module.exports = class Cache {
         cacheIntegrity: info.integrity,
         integrity: opts && opts.integrity
       })) {
+        const resHeaders = new fetch.Headers(info.metadata.resHeaders)
+        resHeaders.set('X-LOCAL-CACHE', this._path)
+        resHeaders.set('X-LOCAL-CACHE-TIME', new Date(info.time).toUTCString())
         if (req.method === 'HEAD') {
           return new fetch.Response(null, {
             url: req.url,
-            headers: info.metadata.resHeaders,
+            headers: resHeaders,
             status: 200
           })
         }
@@ -94,7 +97,7 @@ module.exports = class Cache {
           body.write('dummy')
           return new fetch.Response(body, {
             url: req.url,
-            headers: info.metadata.resHeaders,
+            headers: resHeaders,
             status: 200,
             size: stat.size
           })
