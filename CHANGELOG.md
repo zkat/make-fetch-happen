@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.5.1"></a>
+## [1.5.1](https://github.com/zkat/make-fetch-happen/compare/v1.5.0...v1.5.1) (2017-04-05)
+
+
+### Bug Fixes
+
+* **cache:** bump cacache for its fixed error messages ([2f2b916](https://github.com/zkat/make-fetch-happen/commit/2f2b916))
+* **cache:** fix handling of errors in cache reads ([5729222](https://github.com/zkat/make-fetch-happen/commit/5729222))
+
+
+
 <a name="1.5.0"></a>
 # [1.5.0](https://github.com/zkat/make-fetch-happen/compare/v1.4.0...v1.5.0) (2017-04-04)
 
