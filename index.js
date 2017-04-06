@@ -2,14 +2,11 @@
 
 let Cache
 const fetch = require('node-fetch')
-const http = require('http')
-const https = require('https')
 let ProxyAgent
 const pkg = require('./package.json')
 const retry = require('promise-retry')
 let ssri
 const Stream = require('stream')
-const url = require('url')
 
 // https://fetch.spec.whatwg.org/#http-network-or-cache-fetch
 module.exports = cachingFetch
@@ -311,6 +308,8 @@ function remoteFetch (uri, opts) {
   })
 }
 
+let httpsAgent
+let httpAgent
 function getAgent (uri, opts) {
   if (opts.agent != null) {
     // `agent: false` has special behavior!
@@ -320,10 +319,18 @@ function getAgent (uri, opts) {
       ProxyAgent = require('proxy-agent')
     }
     return new ProxyAgent(opts.proxy)
-  } else if (url.parse(uri).protocol === 'https:') {
-    return https.globalAgent
-  } else if (url.parse(uri).protocol === 'http:') {
-    return http.globalAgent
+  } else if (uri.trim().startsWith('https:')) {
+    if (!httpsAgent) {
+      const Agent = require('agentkeepalive').HttpsAgent
+      httpsAgent = new Agent({maxSockets: 15})
+    }
+    return httpsAgent
+  } else {
+    if (!httpAgent) {
+      const Agent = require('agentkeepalive')
+      httpAgent = new Agent({maxSockets: 15})
+    }
+    return httpAgent
   }
 }
 
