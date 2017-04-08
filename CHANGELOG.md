@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.7.0"></a>
+# [1.7.0](https://github.com/zkat/make-fetch-happen/compare/v1.6.0...v1.7.0) (2017-04-08)
+
+
+### Features
+
+* **cache:** add useful headers to inform users about cached data ([9bd7b00](https://github.com/zkat/make-fetch-happen/commit/9bd7b00))
+
+
+
 <a name="1.6.0"></a>
 # [1.6.0](https://github.com/zkat/make-fetch-happen/compare/v1.5.1...v1.6.0) (2017-04-06)
 
