@@ -142,6 +142,24 @@ By implementing this API, you can customize the storage backend for make-fetch-h
 
 You can refer to `cache.js` in the make-fetch-happen source code for a reference implementation.
 
+The default cache manager also adds the following headers to cached responses:
+
+* `X-Local-Cache`: Path to the cache the content was found in
+* `X-Local-Cache-Key`: Unique cache entry key for this response
+* `X-Local-Cache-Hash`: Specific integrity hash for the cached entry
+* `X-Local-Cache-Time`: UTCString of the cache insertion time for the entry
+
+Using [`cacache`](https://npm.im/cacache), a call like this may be used to
+manually fetch the cached entry:
+
+```javascript
+const h = response.headers
+cacache.get(h.get('x-local-cache'), h.get('x-local-cache-key'))
+
+// grab content only, directly:
+cacache.get.byDigest(h.get('x-local-cache'), h.get('x-local-cache-hash'))
+```
+
 ##### Example
 
 ```javascript

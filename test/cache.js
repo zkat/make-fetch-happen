@@ -4,6 +4,7 @@ const BB = require('bluebird')
 const Buffer = require('safe-buffer').Buffer
 
 const finished = BB.promisify(require('mississippi').finished)
+const ssri = require('ssri')
 const test = require('tap').test
 const tnock = require('./util/tnock')
 
@@ -11,6 +12,7 @@ const fetch = require('..')
 
 const CACHE = require('./util/test-dir')(__filename)
 const CONTENT = Buffer.from('hello, world!')
+const INTEGRITY = ssri.fromData(CONTENT).toString()
 const HOST = 'https://local.registry.npm'
 
 test('accepts a local path for caches', t => {
@@ -18,7 +20,13 @@ test('accepts a local path for caches', t => {
   return fetch(`${HOST}/test`, {
     cacheManager: CACHE,
     retry: {retries: 0}
-  }).then(res => res.buffer()).then(body => {
+  }).then(res => {
+    t.notOk(
+      res.headers.get('x-local-cache'),
+      'no cache headers if response is from network'
+    )
+    return res.buffer()
+  }).then(body => {
     t.deepEqual(body, CONTENT, 'got remote content')
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
@@ -26,6 +34,15 @@ test('accepts a local path for caches', t => {
     })
   }).then(res => {
     t.equal(res.status, 200, 'non-stale cached res has 200 status')
+    const hs = res.headers
+    t.equal(hs.get('x-local-cache'), CACHE, 'path added for cached requests')
+    t.match(
+      hs.get('x-local-cache-key'),
+      new RegExp(`${HOST}/test`),
+      'cache key contains URI'
+    )
+    t.equal(hs.get('x-local-cache-hash'), INTEGRITY, 'content hash in header')
+    t.ok(hs.get('x-local-cache-time'), 'content write time in header')
     return res.buffer()
   }).then(body => {
     t.deepEqual(body, CONTENT, 'got cached content')

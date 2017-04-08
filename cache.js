@@ -39,7 +39,8 @@ module.exports = class Cache {
   // Returns a Promise that resolves to the response associated with the first
   // matching request in the Cache object.
   match (req, opts) {
-    return cacache.get.info(this._path, cacheKey(req)).then(info => {
+    const key = cacheKey(req)
+    return cacache.get.info(this._path, key).then(info => {
       if (info && info.metadata && matchDetails(req, {
         url: info.metadata.url,
         reqHeaders: new fetch.Headers(info.metadata.reqHeaders),
@@ -48,8 +49,7 @@ module.exports = class Cache {
         integrity: opts && opts.integrity
       })) {
         const resHeaders = new fetch.Headers(info.metadata.resHeaders)
-        resHeaders.set('X-LOCAL-CACHE', this._path)
-        resHeaders.set('X-LOCAL-CACHE-TIME', new Date(info.time).toUTCString())
+        addCacheHeaders(resHeaders, this._path, key, info.integrity, info.time)
         if (req.method === 'HEAD') {
           return new fetch.Response(null, {
             url: req.url,
@@ -116,6 +116,7 @@ module.exports = class Cache {
   put (req, response, opts) {
     const size = response.headers.get('content-length')
     const fitInMemory = !!size && size < MAX_MEM_SIZE
+    const ckey = cacheKey(req)
     const cacheOpts = {
       algorithms: opts.algorithms,
       metadata: {
@@ -130,9 +131,12 @@ module.exports = class Cache {
     }
     if (req.method === 'HEAD' || response.status === 304) {
       // Update metadata without writing
-      return cacache.get.info(this._path, cacheKey(req)).then(info => {
+      return cacache.get.info(this._path, ckey).then(info => {
         // Providing these will bypass content write
         cacheOpts.integrity = info.integrity
+        addCacheHeaders(
+          response.headers, this._path, ckey, info.integrity, info.time
+        )
         return new this.Promise((resolve, reject) => {
           pipe(
             cacache.get.stream.byDigest(this._path, info.integrity, cacheOpts),
@@ -237,4 +241,11 @@ function matchDetails (req, cached) {
   reqUrl.hash = null
   cacheUrl.hash = null
   return url.format(reqUrl) === url.format(cacheUrl)
+}
+
+function addCacheHeaders (resHeaders, path, key, hash, time) {
+  resHeaders.set('X-Local-Cache', path)
+  resHeaders.set('X-Local-Cache-Key', key)
+  resHeaders.set('X-Local-Cache-Hash', hash)
+  resHeaders.set('X-Local-Cache-Time', new Date(time).toUTCString())
 }
