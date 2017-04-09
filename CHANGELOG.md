@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.2.0"></a>
+# [2.2.0](https://github.com/zkat/make-fetch-happen/compare/v2.1.0...v2.2.0) (2017-04-09)
+
+
+### Bug Fixes
+
+* **cache:** treat caches as private ([57b7dc2](https://github.com/zkat/make-fetch-happen/commit/57b7dc2))
+
+
+### Features
+
+* **retry:** accept shorthand retry settings ([dfed69d](https://github.com/zkat/make-fetch-happen/commit/dfed69d))
+
+
+
 <a name="2.1.0"></a>
 # [2.1.0](https://github.com/zkat/make-fetch-happen/compare/v2.0.4...v2.1.0) (2017-04-09)
 
