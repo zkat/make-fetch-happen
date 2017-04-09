@@ -44,7 +44,7 @@
     "https-proxy-agent": "^1.0.0",
     "lru-cache": "^4.0.2",
     "mississippi": "^1.2.0",
-    "node-fetch": "file:node-fetch-pkg.tgz",
+    "node-fetch": "2.0.0-alpha.3",
     "promise-retry": "^1.1.1",
     "safe-buffer": "^5.0.1",
     "socks-proxy-agent": "^2.0.0",
