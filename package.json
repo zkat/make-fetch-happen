@@ -5,8 +5,7 @@
   "main": "index.js",
   "files": [
     "*.js",
-    "lib",
-    "*pkg.tgz"
+    "lib"
   ],
   "scripts": {
     "prerelease": "npm t",
@@ -33,6 +32,9 @@
     "twitter": "maybekatz"
   },
   "license": "CC0-1.0",
+  "bundleDependencies": [
+    "node-fetch"
+  ],
   "dependencies": {
     "agentkeepalive": "^3.1.0",
     "bluebird": "^3.5.0",
