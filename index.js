@@ -139,7 +139,9 @@ function makePolicy (req, res) {
     status: res.status,
     headers: adaptHeaders(res.headers)
   }
-  return new CachePolicy(_req, _res)
+  return new CachePolicy(_req, _res, {
+    shared: false
+  })
 }
 
 // https://tools.ietf.org/html/rfc7234#section-4.2
