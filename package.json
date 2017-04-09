@@ -6,7 +6,7 @@
   "files": [
     "*.js",
     "lib",
-    "node-fetch-pkg.tgz"
+    "*pkg.tgz"
   ],
   "scripts": {
     "prerelease": "npm t",
