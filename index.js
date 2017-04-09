@@ -61,6 +61,11 @@ function cachingFetch (uri, _opts) {
   if (opts.integrity && !ssri) {
     ssri = require('ssri')
   }
+  if (opts.retry && typeof opts.retry === 'number') {
+    opts.retry = {retries: opts.retry}
+  } else if (opts.retry === false) {
+    opts.retry = {retries: 0}
+  }
   opts.cacheManager = opts.cacheManager && (
     typeof opts.cacheManager === 'string'
     ? new Cache(opts.cacheManager, opts.cacheOpts)
@@ -326,7 +331,7 @@ function remoteFetch (uri, opts) {
         throw err
       }
     })
-  }, opts.retry === false ? { retries: 0 } : opts.retry).catch(err => {
+  }, opts.retry).catch(err => {
     if (err.status >= 400) {
       return err
     } else {

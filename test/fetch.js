@@ -286,4 +286,29 @@ test('retries non-POST requests on 500 errors', t => {
   })
 })
 
+test('accepts opts.retry shorthands', t => {
+  const srv = tnock(t, HOST)
+  srv.get('/test').reply(500, '')
+  return fetch(`${HOST}/test`, {
+    retry: false
+  }).then(res => {
+    t.equal(res.status, 500, 'did not retry')
+    srv.get('/test').reply(500, () => {
+      srv.get('/test').reply(200, CONTENT)
+      return ''
+    })
+    return fetch(`${HOST}/test`, {
+      retry: 1
+    })
+  }).then(res => {
+    t.equal(res.status, 200, 'retried once')
+    srv.get('/test').twice().reply(500)
+    return fetch(`${HOST}/test`, {
+      retry: 1
+    })
+  }).then(res => {
+    t.equal(res.status, 500, 'failed on second retry')
+  })
+})
+
 test('retries non-POST requests on ECONNRESET')
