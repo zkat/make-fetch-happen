@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.0.1"></a>
+## [2.0.1](https://github.com/zkat/make-fetch-happen/compare/v2.0.0...v2.0.1) (2017-04-09)
+
+
+### Bug Fixes
+
+* **deps:** make sure node-fetch tarball included in release ([3bf49d1](https://github.com/zkat/make-fetch-happen/commit/3bf49d1))
+
+
+
 <a name="2.0.0"></a>
 # [2.0.0](https://github.com/zkat/make-fetch-happen/compare/v1.7.0...v2.0.0) (2017-04-09)
 
