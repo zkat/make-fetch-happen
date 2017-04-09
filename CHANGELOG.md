@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.0.0"></a>
+# [2.0.0](https://github.com/zkat/make-fetch-happen/compare/v1.7.0...v2.0.0) (2017-04-09)
+
+
+### Bug Fixes
+
+* **deps:** manually pull in newer node-fetch to avoid babel prod dep ([66e5e87](https://github.com/zkat/make-fetch-happen/commit/66e5e87))
+* **retry:** be more specific about when we retry ([a47b782](https://github.com/zkat/make-fetch-happen/commit/a47b782))
+
+
+### Features
+
+* **agent:** add ca/cert/key support to auto-agent (#15) ([57585a7](https://github.com/zkat/make-fetch-happen/commit/57585a7))
+
+
+### BREAKING CHANGES
+
+* **agent:** pac proxies are no longer supported.
+* **retry:** Retry logic has changes.
+
+* 404s, 420s, and 429s all retry now.
+* ENOTFOUND no longer retries.
+* Only ECONNRESET, ECONNREFUSED, EADDRINUSE, ETIMEDOUT, and `request-timeout` errors are retried.
+
+
+
 <a name="1.7.0"></a>
 # [1.7.0](https://github.com/zkat/make-fetch-happen/compare/v1.6.0...v1.7.0) (2017-04-08)
 
