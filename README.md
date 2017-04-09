@@ -1,7 +1,7 @@
 # make-fetch-happen [![npm version](https://img.shields.io/npm/v/make-fetch-happen.svg)](https://npm.im/make-fetch-happen) [![license](https://img.shields.io/npm/l/make-fetch-happen.svg)](https://npm.im/make-fetch-happen) [![Travis](https://img.shields.io/travis/zkat/make-fetch-happen.svg)](https://travis-ci.org/zkat/make-fetch-happen) [![AppVeyor](https://ci.appveyor.com/api/projects/status/github/zkat/make-fetch-happen?svg=true)](https://ci.appveyor.com/project/zkat/make-fetch-happen) [![Coverage Status](https://coveralls.io/repos/github/zkat/make-fetch-happen/badge.svg?branch=latest)](https://coveralls.io/github/zkat/make-fetch-happen?branch=latest)
 
 
-[`make-fetch-happen`](https://github.com/zkat/make-fetch-happen) is a Node.js library that implements the [`fetch` API](https://fetch.spec.whatwg.org/), including cache support, request pooling, proxies, retries, and more!
+[`make-fetch-happen`](https://github.com/zkat/make-fetch-happen) is a Node.js library that implements the [`fetch` API](https://fetch.spec.whatwg.org/), including HTTP Cache support, request pooling, proxies, retries, [and more](#features)!
 
 ## Install
 
@@ -20,6 +20,8 @@
     * [`opts.cacheManager`](#opts-cache-manager)
     * [`opts.cache`](#opts-cache)
     * [`opts.proxy`](#opts-proxy)
+    * [`opts.ca, opts.cert, opts.key`](#https-opts)
+    * [`opts.maxSockets`](#opts-max-sockets)
     * [`opts.retry`](#opts-retry)
     * [`opts.integrity`](#opts-integrity)
 * [Message From Our Sponsors](#wow)
@@ -27,14 +29,15 @@
 ### Example
 
 ```javascript
-const fetch = require('make-fetch-happen')
+const fetch = require('make-fetch-happen').defaults({
+  cacheManager: './my-cache' // path where cache will be written (and read)
+})
 
-fetch('https://registry.npmjs.org/make-fetch-happen', {
-  cacheManager: './my-cache' // cache will be written here
-}).then(res => res.json()).then(body => {
+fetch('https://registry.npmjs.org/make-fetch-happen').then(res => {
+  return res.json() // download the body as JSON
+}).then(body => {
   console.log(`got ${body.name} from web`)
   return fetch('https://registry.npmjs.org/make-fetch-happen', {
-    cacheManager: './my-cache',
     cache: 'no-cache' // forces a conditional request
   })
 }).then(res => {
@@ -51,7 +54,8 @@ fetch('https://registry.npmjs.org/make-fetch-happen', {
 * Request pooling out of the box
 * Quite fast, really
 * Automatic HTTP-semantics-aware request retries
-* Proxy support (http, https, socks, socks4, socks5, pac)
+* Cache-fallback automatic "offline mode"
+* Proxy support (http, https, socks, socks4, socks5)
 * Built-in request caching following full HTTP caching rules (`Cache-Control`, `ETag`, `304`s, cache fallback on error, etc).
 * Customize cache storage with any [Cache API](https://developer.mozilla.org/en-US/docs/Web/API/Cache)-compliant `Cache` instance. Cache to Redis!
 * Node.js Stream support
@@ -117,8 +121,9 @@ These other options are modified or augmented by make-fetch-happen:
 * headers - Default `User-Agent` set to make-fetch happen. `Connection` is set to `keep-alive` or `close` automatically depending on `opts.agent`.
 * agent
   * If agent is null, an http or https Agent will be automatically used. By default, these will be `http.globalAgent` and `https.globalAgent`.
-  * If [`opts.proxy`](#opts-proxy) is provided and `opts.agent` is null, the agent will be set to a [`proxy-agent`](https://npm.im/proxy-agent) instance.
-  * If `opts.agent` is `false` or an object is provided, it will be used as the request-pooling agent for this request.
+  * If [`opts.proxy`](#opts-proxy) is provided and `opts.agent` is null, the agent will be set to an appropriate proxy-handling agent.
+  * If `opts.agent` is an object, it will be used as the request-pooling agent argument for this request.
+  * If `opts.agent` is `false`, it will be passed as-is to the underlying request library. This causes a new Agent to be spawned for every request.
 
 For more details, see [the documentation for `node-fetch` itself](https://github.com/bitinn/node-fetch#options).
 
@@ -129,6 +134,8 @@ make-fetch-happen augments the `node-fetch` API with additional features availab
 * [`opts.cacheManager`](#opts-cache-manager) - Cache target to read/write
 * [`opts.cache`](#opts-cache) - `fetch` cache mode. Controls cache *behavior*.
 * [`opts.proxy`](#opts-proxy) - Proxy agent
+* [`opts.ca, opts.cert, opts.key`](#https-opts)
+* [`opts.maxSockets`](#opts-max-sockets)
 * [`opts.retry`](#opts-retry) - Request retry settings
 * [`opts.integrity`](#opts-integrity) - [Subresource Integrity](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity) metadata.
 
@@ -141,6 +148,8 @@ If an object is provided, it will be assumed to be a compliant [`Cache` instance
 By implementing this API, you can customize the storage backend for make-fetch-happen itself -- for example, you could implement a cache that uses `redis` for caching, or simply keeps everything in memory. Most of the caching logic exists entirely on the make-fetch-happen side, so the only thing you need to worry about is reading, writing, and deleting, as well as making sure `fetch.Response` objects are what gets returned.
 
 You can refer to `cache.js` in the make-fetch-happen source code for a reference implementation.
+
+**NOTE**: Requests will not be cached unless their response bodies are consumed. You will need to use one of the `res.json()`, `res.buffer()`, etc methods on the response, or drain the `res.body` stream, in order for it to be written.
 
 The default cache manager also adds the following headers to cached responses:
 
@@ -215,7 +224,7 @@ class MyCustomRedisCache {
 
 This option follows the standard `fetch` API cache option. This option will do nothing if [`opts.cacheManager`](#opts-cache-manager) is null. The following values are accepted (as strings):
 
-* `default` - Fetch will inspect the HTTP cache on the way to the network. If there is a fresh response it will be used. If there is a stale response a conditional request will be created, and a normal request otherwise. It then updates the HTTP cache with the response.
+* `default` - Fetch will inspect the HTTP cache on the way to the network. If there is a fresh response it will be used. If there is a stale response a conditional request will be created, and a normal request otherwise. It then updates the HTTP cache with the response. If the revalidation request fails (for example, on a 500 or if you're offline), the stale response will be returned.
 * `no-store` - Fetch behaves as if there is no HTTP cache at all.
 * `reload` - Fetch behaves as if there is no HTTP cache on the way to the network. Ergo, it creates a normal request and updates the HTTP cache with the response.
 * `no-cache` - Fetch creates a conditional request if there is a response in the HTTP cache and a normal request otherwise. It then updates the HTTP cache with the response.
@@ -227,28 +236,35 @@ This option follows the standard `fetch` API cache option. This option will do n
 ##### Example
 
 ```javascript
+const fetch = require('make-fetch-happen').defaults({
+  cacheManager: './my-cache'
+})
+
 // Will error with ENOTCACHED if we haven't already cached this url
 fetch('https://registry.npmjs.org/make-fetch-happen', {
-  cacheManager: './my-cache',
   cache: 'only-if-cached'
 })
 
 // Will refresh any local content and cache the new response
 fetch('https://registry.npmjs.org/make-fetch-happen', {
-  cacheManager: './my-cache',
   cache: 'reload'
 })
 
 // Will use any local data, even if stale. Otherwise, will hit network.
 fetch('https://registry.npmjs.org/make-fetch-happen', {
-  cacheManager: './my-cache',
   cache: 'force-cache'
 })
 ```
 
 #### <a name="opts-proxy"></a> `> opts.proxy`
 
-A string URI or an object with options to be passed directly to [`proxy-agent`](https://npm.im/proxy-agent). Options available may vary depending on the proxy type. Refer the `proxy-agent`'s documentation for more details.
+A string or `url.parse`-d URI to proxy through. Different Proxy handlers will be
+used depending on the proxy's protocol.
+
+Additionally, `process.env.HTTP_PROXY`, `process.env.HTTPS_PROXY`, and
+`process.env.PROXY` are used if present and no `opts.proxy` value is provided.
+
+(Pending) `process.env.NO_PROXY` may also be configured to skip proxying requests for all, or specific domains.
 
 ##### Example
 
@@ -261,19 +277,46 @@ fetch('https://registry.npmjs.org/make-fetch-happen', {
   proxy: {
     protocol: 'https:',
     hostname: 'corporate.yourcompany.proxy',
-    port: 4445,
-    ca: process.env.CERTIFICATE_AUTHORITY
+    port: 4445
   }
 })
 ```
 
+#### <a name="https-opts"></a> `> opts.ca, opts.cert, opts.key`
+
+These values are passed in directly to the HTTPS agent and will be used for both
+proxied and unproxied outgoing HTTPS requests. They correspond to the same
+options the `https` module accepts, which will be themselves passed to
+`tls.connect()`.
+
+#### <a name="opts-max-sockets"></a> `> opts.maxSockets`
+
+Default: 15
+
+Maximum number of active concurrent sockets to use for the underlying
+Http/Https/Proxy agents. This setting applies once per spawned agent.
+
+15 is probably a _pretty good value_ for most use-cases, and balances speed
+with, uh, not knocking out people's routers. 🤓
+
 #### <a name="opts-retry"></a> `> opts.retry`
 
-An object that can be used to tune request retry settings. Requests are retried if they result in a `500`-level http status, or if the request fails entirely with an error. make-fetch-happen will never retry `POST` requests - it will only retry idempotent requests (GET, HEAD, PUT, DELETE, PATCH, etc), and those only if `opts.body` is NOT a stream.
+An object that can be used to tune request retry settings. Retries will only be attempted on the following conditions:
 
-If `opts.retry` is `false`, requests will never be retried.
+* Request method is NOT `POST` AND
+* Request status is one of: `404`, `408`, `420`, `429`, or any status in the 500-range. OR
+* Request errored with `ECONNRESET`, `ECONNREFUSED`, `EADDRINUSE`, `ETIMEDOUT`, or the `fetch` error `request-timeout`.
 
-The following retry options are available:
+The following are worth noting as explicitly not retried:
+
+* `getaddrinfo ENOTFOUND` and will be assumed to be either an unreachable domain or the user will be assumed offline. If a response is cached, it will be returned immediately.
+* `ECONNRESET` currently has no support for restarting. It will eventually be supported but requires a bit more juggling due to streaming.
+
+If `opts.retry` is `false`, it is equivalent to `{retries: 0}`
+
+If `opts.retry` is a number, it is equivalent to `{retries: num}`
+
+The following retry options are available if you want more control over it:
 
 * retries
 * factor
@@ -295,6 +338,10 @@ fetch('https://flaky.site.com', {
 
 fetch('http://reliable.site.com', {
   retry: false
+})
+
+fetch('http://one-more.site.com', {
+  retry: 3
 })
 ```
 

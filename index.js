@@ -68,7 +68,7 @@ function cachingFetch (uri, _opts) {
   }
   opts.cacheManager = opts.cacheManager && (
     typeof opts.cacheManager === 'string'
-    ? new Cache(opts.cacheManager, opts.cacheOpts)
+    ? new Cache(opts.cacheManager)
     : opts.cacheManager
   )
   opts.cache = opts.cacheManager && (opts.cache || 'default')
@@ -281,7 +281,7 @@ function remoteFetch (uri, opts) {
       } else if (opts.cacheManager && (
         (req.method !== 'GET' && req.method !== 'HEAD')
       )) {
-        return opts.cacheManager.delete(req, opts.cacheOpts).then(() => {
+        return opts.cacheManager.delete(req).then(() => {
           if (res.status >= 500) {
             if (req.method === 'POST') {
               return res
