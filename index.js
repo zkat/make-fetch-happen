@@ -346,7 +346,7 @@ let AGENT_CACHE = new LRU({
 let HttpsAgent
 let HttpAgent
 function getAgent (uri, opts) {
-  const parsedUri = url.parse(uri)
+  const parsedUri = url.parse(typeof uri === 'string' ? uri : uri.url)
   const isHttps = parsedUri.protocol === 'https:'
   const pxuri = getProxyUri(uri, opts)
   const key = [
