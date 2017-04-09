@@ -8,6 +8,19 @@ const retry = require('promise-retry')
 let ssri
 const Stream = require('stream')
 
+const RETRY_ERRORS = [
+  'ECONNRESET', // remote socket closed on us
+  'ECONNREFUSED', // remote host refused to open connection
+  'EADDRINUSE', // failed to bind to a local port (proxy?)
+  'ETIMEDOUT' // someone in the transaction is WAY TOO SLOW
+  // Known codes we do NOT retry on:
+  // ENOTFOUND (getaddrinfo failure. Either bad hostname, or offline)
+]
+
+const RETRY_TYPES = [
+  'request-timeout'
+]
+
 // https://fetch.spec.whatwg.org/#http-network-or-cache-fetch
 module.exports = cachingFetch
 cachingFetch.defaults = function (_uri, _opts) {
@@ -196,7 +209,7 @@ function condFetch (uri, cachedRes, opts) {
     if (ctrl.match(/must-revalidate/i)) {
       throw err
     } else {
-      setWarning(cachedRes, 111, `Unexpected error: ${err.message}`)
+      setWarning(cachedRes, 111, `${err.code}: ${err.message}`)
       return cachedRes
     }
   })
@@ -280,8 +293,18 @@ function remoteFetch (uri, opts) {
             return res
           }
         })
-      } else if (res.status === 408 || res.status >= 500) {
-        // 408 === timeout
+      } else if (
+        // Retriable + rate-limiting status codes
+        // When hitting an API with rate-limiting features,
+        // be sure to set the `retry` settings according to
+        // documentation for that.
+        res.status === 404 || // Not Found ("subsequent requests permissible")
+        res.status === 408 || // Request Timeout
+        res.status === 420 || // Enhance Your Calm (usually Twitter rate-limit)
+        res.status === 429 || // Too Many Requests ("standard" rate-limiting)
+        // Assume server errors are momentary hiccups
+        res.status >= 500
+      ) {
         if (req.method === 'POST') {
           return res
         } else if (req.body instanceof Stream) {
@@ -293,14 +316,22 @@ function remoteFetch (uri, opts) {
         return res
       }
     }).catch(err => {
-      if (req.method !== 'POST') {
+      const code = err.code === 'EPROMISERETRY'
+      ? err.retried.code
+      : err.code
+      if (
+        req.method !== 'POST' && (
+          RETRY_ERRORS.indexOf(code) >= 0 ||
+          RETRY_TYPES.indexOf(err.type) >= 0
+        )
+      ) {
         return retryHandler(err)
       } else {
         throw err
       }
     })
   }, opts.retry === false ? { retries: 0 } : opts.retry).catch(err => {
-    if (err.status >= 500 || err.status === 408) {
+    if (err.status >= 400) {
       return err
     } else {
       throw err
