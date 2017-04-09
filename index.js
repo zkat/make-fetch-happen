@@ -1,6 +1,7 @@
 'use strict'
 
 let Cache
+const CachePolicy = require('http-cache-semantics')
 const fetch = require('node-fetch')
 const LRU = require('lru-cache')
 const pkg = require('./package.json')
@@ -94,10 +95,10 @@ function cachingFetch (uri, _opts) {
           res.headers.delete('Warning')
         }
       }
-      if (res && opts.cache === 'default' && !isStale(res)) {
+      if (res && opts.cache === 'default' && !isStale(req, res)) {
         return res
       } else if (res && (opts.cache === 'default' || opts.cache === 'no-cache')) {
-        return condFetch(uri, res, opts)
+        return condFetch(req, res, opts)
       } else if (res && (
         opts.cache === 'force-cache' || opts.cache === 'only-if-cached'
       )) {
@@ -112,7 +113,7 @@ function cachingFetch (uri, _opts) {
         throw err
       } else {
         // Missing cache entry, or mode is default (if stale), reload, no-store
-        return remoteFetch(uri, opts)
+        return remoteFetch(req.url, opts)
       }
     })
   } else {
@@ -120,94 +121,86 @@ function cachingFetch (uri, _opts) {
   }
 }
 
+function adaptHeaders (headers) {
+  const newHs = {}
+  for (let k of headers.keys()) {
+    newHs[k] = headers.get(k)
+  }
+  return newHs
+}
+
+function makePolicy (req, res) {
+  const _req = {
+    url: req.url,
+    method: req.method,
+    headers: adaptHeaders(req.headers)
+  }
+  const _res = {
+    status: res.status,
+    headers: adaptHeaders(res.headers)
+  }
+  return new CachePolicy(_req, _res)
+}
+
 // https://tools.ietf.org/html/rfc7234#section-4.2
-function isStale (res) {
+function isStale (req, res) {
   if (!res) { return null }
-  const ctrl = res.headers.get('Cache-Control') || ''
-  if (ctrl.match(/must-revalidate/i)) {
-    return true
+  const _req = {
+    url: req.url,
+    method: req.method,
+    headers: adaptHeaders(req.headers)
   }
-  if (ctrl.match(/immutable/i)) {
-    return false
-  }
-  const maxAge = freshnessLifetime(res)
-  const currentAge = (new Date() - new Date(res.headers.get('Date') || new Date())) / 1000
-  return maxAge <= currentAge
+  const bool = !makePolicy(req, res).satisfiesWithoutRevalidation(_req)
+  return bool
 }
 
-// https://tools.ietf.org/html/rfc7234#section-4.2.1
-function freshnessLifetime (res) {
-  const cacheControl = res.headers.get('Cache-Control') || ''
-  const pragma = res.headers.get('Pragma') || ''
-  const maxAgeMatch = cacheControl.match(/(?:s-maxage|max-age)\s*=\s*(\d+)/i)
-  const noCacheMatch = (
-    cacheControl.match(/no-cache/i) ||
-    pragma.match(/no-cache/i)
-  )
-  if (noCacheMatch) {
-    // no-cache requires revalidation on every request
-    return 0
-  } else if (maxAgeMatch) {
-    return +maxAgeMatch[1]
-  } else if (res.headers.get('Expires')) {
-    const expireDate = new Date(res.headers.get('Expires'))
-    const resDate = new Date(res.headers.get('Date') || new Date())
-    return (expireDate - resDate) / 1000
-  } else {
-    return heuristicFreshness(res)
-  }
+function mustRevalidate (res) {
+  return (res.headers.get('cache-control') || '').match(/must-revalidate/i)
 }
 
-// https://tools.ietf.org/html/rfc7234#section-4.2.2
-function heuristicFreshness (res) {
-  const lastMod = res.headers.get('Last-Modified')
-  const date = new Date(res.headers.get('Date') || new Date())
-  !res.headers.get('Warning') && setWarning(
-    res, 113, 'Used heuristics to calculate cache freshness'
-  )
-  if (lastMod) {
-    const age = (date - new Date(lastMod)) / 1000
-    return Math.min(age * 0.1, 300)
-  } else {
-    return 300
-  }
-}
-
-function condFetch (uri, cachedRes, opts) {
-  const ctrl = cachedRes.headers.get('cache-control') || ''
-  const newHeaders = {}
+function condFetch (req, cachedRes, opts) {
+  let newHeaders = {}
   Object.keys(opts.headers || {}).forEach(k => {
     newHeaders[k] = opts.headers[k]
   })
-  if (cachedRes.headers.get('etag')) {
-    const condHeader = opts.method !== 'GET'
-    ? 'if-match'
-    : 'if-none-match'
-    newHeaders[condHeader] = cachedRes.headers.get('etag')
+  const policy = makePolicy(req, cachedRes)
+  const _req = {
+    url: req.url,
+    method: req.method,
+    headers: newHeaders
   }
-  if (cachedRes.headers.get('last-modified')) {
-    const condHeader = opts.method !== 'GET' && opts.method !== 'HEAD'
-    ? 'if-unmodified-since'
-    : 'if-modified-since'
-    newHeaders[condHeader] = cachedRes.headers.get('last-modified')
-  }
-  opts.headers = newHeaders
-  if (isStale(cachedRes)) {
-    setWarning(cachedRes, 110, 'Local cached response stale')
-  }
-  return remoteFetch(uri, opts).then(condRes => {
+  opts.headers = policy.revalidationHeaders(_req)
+  return remoteFetch(req.url, opts).then(condRes => {
+    const revaled = policy.revalidatedPolicy(_req, {
+      status: condRes.status,
+      headers: adaptHeaders(condRes.headers)
+    })
     if (condRes.status === 304) {
       condRes.body = cachedRes.body
-      condRes.headers.set('Warning', cachedRes.headers.get('Warning'))
-    } else if (condRes.status >= 500 && !ctrl.match(/must-revalidate/i)) {
+      return opts.cacheManager.put(req, condRes, opts).then(newRes => {
+        newRes.headers = new fetch.Headers(revaled.policy.responseHeaders())
+        if (revaled.modified) {
+          setWarning(newRes, 110, 'Revalidation failed even with 304 response. Using stale body with new headers.')
+        } else {
+          setWarning(newRes, 110, 'Local cached response stale')
+        }
+        return newRes
+      })
+    } else if (
+      condRes.status >= 500 &&
+      !mustRevalidate(cachedRes)
+    ) {
       setWarning(
-        cachedRes, 111, `Revalidation failed. Returning stale response`
+        cachedRes, 111, `Revalidation failed with status ${condRes.status}. Returning stale response`
       )
       return cachedRes
+    } else {
+      return condRes
     }
-    return condRes
+  }).then(res => {
+    return res
   }).catch(err => {
-    if (ctrl.match(/must-revalidate/i)) {
+    if (mustRevalidate(cachedRes)) {
       throw err
     } else {
       setWarning(cachedRes, 111, `${err.code}: ${err.message}`)
@@ -216,9 +209,9 @@ function condFetch (uri, cachedRes, opts) {
   })
 }
 
-function setWarning (reqOrRes, code, message, host) {
+function setWarning (reqOrRes, code, message, host, append) {
   host = host || 'localhost'
-  reqOrRes.headers.set(
+  reqOrRes.headers[append ? 'append' : 'set'](
     'Warning',
     `${code} ${host} ${
       JSON.stringify(message)
@@ -230,7 +223,7 @@ function setWarning (reqOrRes, code, message, host) {
 
 function remoteFetch (uri, opts) {
   const agent = getAgent(uri, opts)
-  const headers = {
+  let headers = {
     'connection': agent ? 'keep-alive' : 'close',
     'user-agent': `${pkg.name}/${pkg.version} (+https://npm.im/${pkg.name})`
   }
@@ -239,6 +232,7 @@ function remoteFetch (uri, opts) {
       headers[k] = opts.headers[k]
     })
   }
+  headers = new fetch.Headers(headers)
   const reqOpts = {
     agent,
     body: opts.body,
@@ -268,14 +262,13 @@ function remoteFetch (uri, opts) {
           oldBod.emit('error', err)
         })
       }
-      const cacheCtrl = res.headers.get('cache-control') || ''
       if (
-        (req.method === 'GET' || req.method === 'HEAD') &&
         opts.cacheManager &&
-        !cacheCtrl.match(/no-store/i) &&
         opts.cache !== 'no-store' &&
+        (req.method === 'GET' || req.method === 'HEAD') &&
+        makePolicy(req, res).storable() &&
         // No other statuses should be stored!
-        (res.status === 200 || res.status === 304)
+        res.status === 200
       ) {
         return opts.cacheManager.put(req, res, opts)
       } else if (opts.cacheManager && (
