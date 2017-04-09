@@ -57,7 +57,7 @@
     "npmlog": "^4.0.1",
     "nyc": "^10.0.0",
     "rimraf": "^2.5.4",
-    "standard": "^9.0.1",
+    "standard": "^10.0.1",
     "standard-version": "^4.0.0",
     "tacks": "^1.2.6",
     "tap": "^10.2.0",
