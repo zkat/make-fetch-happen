@@ -120,14 +120,9 @@ test('supports proxy configurations', t => {
         })
       })
     })
-  }).listen(9854)
+  }).listen(9854).on('error', err => { throw err })
   fetch(`http://npm.im/make-fetch-happen`, {
     proxy: 'http://localhost:9854',
-    proxyOpts: {
-      headers: {
-        foo: 'bar'
-      }
-    },
     retry: {
       retries: 0
     }
