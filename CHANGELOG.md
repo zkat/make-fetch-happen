@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.0.4"></a>
+## [2.0.4](https://github.com/zkat/make-fetch-happen/compare/v2.0.3...v2.0.4) (2017-04-09)
+
+
+### Bug Fixes
+
+* **agent:** accept Request as fetch input, not just strings ([b71669a](https://github.com/zkat/make-fetch-happen/commit/b71669a))
+
+
+
 <a name="2.0.3"></a>
 ## [2.0.3](https://github.com/zkat/make-fetch-happen/compare/v2.0.2...v2.0.3) (2017-04-09)
 
