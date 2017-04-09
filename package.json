@@ -42,6 +42,7 @@
     "checksum-stream": "^1.0.2",
     "http-proxy-agent": "^1.0.0",
     "https-proxy-agent": "^1.0.0",
+    "http-cache-semantics": "^3.7.3",
     "lru-cache": "^4.0.2",
     "mississippi": "^1.2.0",
     "node-fetch": "2.0.0-alpha.3",
