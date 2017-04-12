@@ -304,7 +304,7 @@ with, uh, not knocking out people's routers. 🤓
 An object that can be used to tune request retry settings. Retries will only be attempted on the following conditions:
 
 * Request method is NOT `POST` AND
-* Request status is one of: `404`, `408`, `420`, `429`, or any status in the 500-range. OR
+* Request status is one of: `408`, `420`, `429`, or any status in the 500-range. OR
 * Request errored with `ECONNRESET`, `ECONNREFUSED`, `EADDRINUSE`, `ETIMEDOUT`, or the `fetch` error `request-timeout`.
 
 The following are worth noting as explicitly not retried:

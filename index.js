@@ -299,7 +299,6 @@ function remoteFetch (uri, opts) {
         // When hitting an API with rate-limiting features,
         // be sure to set the `retry` settings according to
         // documentation for that.
-        res.status === 404 || // Not Found ("subsequent requests permissible")
         res.status === 408 || // Request Timeout
         res.status === 420 || // Enhance Your Calm (usually Twitter rate-limit)
         res.status === 429 || // Too Many Requests ("standard" rate-limiting)
