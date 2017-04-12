@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.2.2"></a>
+## [2.2.2](https://github.com/zkat/make-fetch-happen/compare/v2.2.1...v2.2.2) (2017-04-12)
+
+
+### Bug Fixes
+
+* **retry:** stop retrying 404s ([6fafd53](https://github.com/zkat/make-fetch-happen/commit/6fafd53))
+
+
+
 <a name="2.2.1"></a>
 ## [2.2.1](https://github.com/zkat/make-fetch-happen/compare/v2.2.0...v2.2.1) (2017-04-10)
 
