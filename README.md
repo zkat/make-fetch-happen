@@ -1,7 +1,10 @@
 # make-fetch-happen [![npm version](https://img.shields.io/npm/v/make-fetch-happen.svg)](https://npm.im/make-fetch-happen) [![license](https://img.shields.io/npm/l/make-fetch-happen.svg)](https://npm.im/make-fetch-happen) [![Travis](https://img.shields.io/travis/zkat/make-fetch-happen.svg)](https://travis-ci.org/zkat/make-fetch-happen) [![AppVeyor](https://ci.appveyor.com/api/projects/status/github/zkat/make-fetch-happen?svg=true)](https://ci.appveyor.com/project/zkat/make-fetch-happen) [![Coverage Status](https://coveralls.io/repos/github/zkat/make-fetch-happen/badge.svg?branch=latest)](https://coveralls.io/github/zkat/make-fetch-happen?branch=latest)
 
 
-[`make-fetch-happen`](https://github.com/zkat/make-fetch-happen) is a Node.js library that implements the [`fetch` API](https://fetch.spec.whatwg.org/), including HTTP Cache support, request pooling, proxies, retries, [and more](#features)!
+[`make-fetch-happen`](https://github.com/zkat/make-fetch-happen) is a Node.js
+library that wraps [`node-fetch`](https://npm.im/node-fetch) with additional
+features it doesn't intend to include, including HTTP Cache support, request
+pooling, proxies, retries, [and more](#features)!
 
 ## Install
 
@@ -50,7 +53,7 @@ fetch('https://registry.npmjs.org/make-fetch-happen').then(res => {
 
 ### Features
 
-* Follows `fetch` spec, using [`node-fetch`](https://npm.im/node-fetch) under the hood.
+* Builds around [`node-fetch`](https://npm.im/node-fetch) for the core [`fetch` API](https://fetch.spec.whatwg.org) implementation
 * Request pooling out of the box
 * Quite fast, really
 * Automatic HTTP-semantics-aware request retries
