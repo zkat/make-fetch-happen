@@ -1,6 +1,7 @@
 'use strict'
 
 const cacache = require('cacache')
+const CacheManager = require('./cache-manager')
 const fetch = require('node-fetch')
 const fs = require('fs')
 const pipe = require('mississippi').pipe
@@ -11,33 +12,17 @@ const url = require('url')
 
 const MAX_MEM_SIZE = 5 * 1024 * 1024 // 5MB
 
-function cacheKey (req) {
-  const parsed = url.parse(req.url)
-  return `make-fetch-happen:request-cache:${
-    url.format({
-      protocol: parsed.protocol,
-      slashes: parsed.slashes,
-      host: parsed.host,
-      hostname: parsed.hostname,
-      pathname: parsed.pathname
-    })
-  }`
-}
-
-// This is a cacache-based implementation of the Cache standard,
-// using node-fetch.
-// docs: https://developer.mozilla.org/en-US/docs/Web/API/Cache
-//
-module.exports = class Cache {
+class Cacache {
   constructor (path, opts) {
     this._path = path
     this._uid = opts && opts.uid
     this._gid = opts && opts.gid
     this.Promise = (opts && opts.Promise) || Promise
   }
+}
+module.exports = Cacache
 
-  // Returns a Promise that resolves to the response associated with the first
-  // matching request in the Cache object.
+CacheManager.impl(Cacache, {
   match (req, opts) {
     const key = cacheKey(req)
     return cacache.get.info(this._path, key).then(info => {
@@ -110,9 +95,7 @@ module.exports = class Cache {
         })
       }
     })
-  }
-
-  // Takes both a request and its response and adds it to the given cache.
+  },
   put (req, response, opts) {
     const size = response.headers.get('content-length')
     const fitInMemory = !!size && size < MAX_MEM_SIZE
@@ -196,11 +179,7 @@ module.exports = class Cache {
       })
     }), err => err && newBody.emit('error', err))
     return response
-  }
-
-  // Finds the Cache entry whose key is the request, and if found, deletes the
-  // Cache entry and returns a Promise that resolves to true. If no Cache entry
-  // is found, it returns false.
+  },
   'delete' (req) {
     return cacache.rm.entry(
       this._path,
@@ -208,7 +187,7 @@ module.exports = class Cache {
     // TODO - true/false
     ).then(() => false)
   }
-}
+})
 
 function matchDetails (req, cached) {
   const reqUrl = url.parse(req.url)
@@ -241,6 +220,19 @@ function matchDetails (req, cached) {
   reqUrl.hash = null
   cacheUrl.hash = null
   return url.format(reqUrl) === url.format(cacheUrl)
+}
+
+function cacheKey (req) {
+  const parsed = url.parse(req.url)
+  return `make-fetch-happen:request-cache:${
+    url.format({
+      protocol: parsed.protocol,
+      slashes: parsed.slashes,
+      host: parsed.host,
+      hostname: parsed.hostname,
+      pathname: parsed.pathname
+    })
+  }`
 }
 
 function addCacheHeaders (resHeaders, path, key, hash, time) {
