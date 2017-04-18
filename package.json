@@ -37,16 +37,16 @@
   ],
   "dependencies": {
     "agentkeepalive": "^3.1.0",
-    "cacache": "^7.0.3",
+    "cacache": "^7.0.5",
+    "http-cache-semantics": "^3.7.3",
     "http-proxy-agent": "^1.0.0",
     "https-proxy-agent": "^1.0.0",
-    "http-cache-semantics": "^3.7.3",
     "lru-cache": "^4.0.2",
     "mississippi": "^1.2.0",
     "node-fetch": "2.0.0-alpha.3",
     "promise-retry": "^1.1.1",
     "socks-proxy-agent": "^2.0.0",
-    "ssri": "^4.0.0"
+    "ssri": "^4.1.2"
   },
   "devDependencies": {
     "bluebird": "^3.5.0",
