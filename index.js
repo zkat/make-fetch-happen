@@ -10,6 +10,7 @@ let ssri
 const Stream = require('stream')
 const url = require('url')
 
+const USER_AGENT = `${pkg.name}/${pkg.version} (+https://npm.im/${pkg.name})`
 const RETRY_ERRORS = [
   'ECONNRESET', // remote socket closed on us
   'ECONNREFUSED', // remote host refused to open connection
@@ -97,6 +98,15 @@ function cachingFetch (uri, _opts) {
         const warningCode = (res.headers.get('Warning') || '').match(/^\d+/)
         if (warningCode && +warningCode >= 100 && +warningCode < 200) {
           // https://tools.ietf.org/html/rfc7234#section-4.3.4
+          //
+          // If a stored response is selected for update, the cache MUST:
+          //
+          // * delete any Warning header fields in the stored response with
+          //   warn-code 1xx (see Section 5.5);
+          //
+          // * retain any Warning header fields in the stored response with
+          //   warn-code 2xx;
+          //
           res.headers.delete('Warning')
         }
       }
@@ -107,6 +117,11 @@ function cachingFetch (uri, _opts) {
       } else if (res && (
         opts.cache === 'force-cache' || opts.cache === 'only-if-cached'
       )) {
+        //   112 Disconnected operation
+        // SHOULD be included if the cache is intentionally disconnected from
+        // the rest of the network for a period of time.
+        // (https://tools.ietf.org/html/rfc2616#section-14.46)
+        setWarning(res, 112, 'Disconnected operation')
         return res
       } else if (!res && opts.cache === 'only-if-cached') {
         const err = new Error(
@@ -182,25 +197,20 @@ function condFetch (req, cachedRes, opts) {
       status: condRes.status,
       headers: adaptHeaders(condRes.headers)
     })
-    if (condRes.status === 304) {
+    if (condRes.status >= 500 && !mustRevalidate(cachedRes)) {
+      //   111 Revalidation failed
+      // MUST be included if a cache returns a stale response because an
+      // attempt to revalidate the response failed, due to an inability to
+      // reach the server.
+      // (https://tools.ietf.org/html/rfc2616#section-14.46)
+      setWarning(cachedRes, 111, `Revalidation failed`)
+      return cachedRes
+    } else if (condRes.status === 304) {
       condRes.body = cachedRes.body
       return opts.cacheManager.put(req, condRes, opts).then(newRes => {
         newRes.headers = new fetch.Headers(revaled.policy.responseHeaders())
-        if (revaled.modified) {
-          setWarning(newRes, 110, 'Revalidation failed even with 304 response. Using stale body with new headers.')
-        } else {
-          setWarning(newRes, 110, 'Local cached response stale')
-        }
         return newRes
       })
-    } else if (
-      condRes.status >= 500 &&
-      !mustRevalidate(cachedRes)
-    ) {
-      setWarning(
-        cachedRes, 111, `Revalidation failed with status ${condRes.status}. Returning stale response`
-      )
-      return cachedRes
     } else {
       return condRes
     }
@@ -210,20 +220,40 @@ function condFetch (req, cachedRes, opts) {
     if (mustRevalidate(cachedRes)) {
       throw err
     } else {
-      setWarning(cachedRes, 111, `${err.code}: ${err.message}`)
+      //   111 Revalidation failed
+      // MUST be included if a cache returns a stale response because an
+      // attempt to revalidate the response failed, due to an inability to
+      // reach the server.
+      // (https://tools.ietf.org/html/rfc2616#section-14.46)
+      setWarning(cachedRes, 111, `Revalidation failed`)
+      //   199 Miscellaneous warning
+      // The warning text MAY include arbitrary information to be presented to
+      // a human user, or logged. A system receiving this warning MUST NOT take
+      // any automated action, besides presenting the warning to the user.
+      // (https://tools.ietf.org/html/rfc2616#section-14.46)
+      setWarning(
+        cachedRes, 199, `Miscellaneous Warning ${err.code}: ${err.message}`)
       return cachedRes
     }
   })
 }
 
-function setWarning (reqOrRes, code, message, host, append) {
-  host = host || 'localhost'
-  reqOrRes.headers[append ? 'append' : 'set'](
+function setWarning (reqOrRes, code, message, replace) {
+  //   Warning    = "Warning" ":" 1#warning-value
+  // warning-value = warn-code SP warn-agent SP warn-text [SP warn-date]
+  // warn-code  = 3DIGIT
+  // warn-agent = ( host [ ":" port ] ) | pseudonym
+  //                 ; the name or pseudonym of the server adding
+  //                 ; the Warning header, for use in debugging
+  // warn-text  = quoted-string
+  // warn-date  = <"> HTTP-date <">
+  // (https://tools.ietf.org/html/rfc2616#section-14.46)
+  reqOrRes.headers[replace ? 'set' : 'append'](
     'Warning',
-    `${code} ${host} ${
+    `${code} ${url.parse(reqOrRes.url).host} ${
       JSON.stringify(message)
     } ${
-      JSON.stringify(new Date().toUTCString)
+      JSON.stringify(new Date().toUTCString())
     }`
   )
 }
@@ -232,7 +262,7 @@ function remoteFetch (uri, opts) {
   const agent = getAgent(uri, opts)
   let headers = {
     'connection': agent ? 'keep-alive' : 'close',
-    'user-agent': `${pkg.name}/${pkg.version} (+https://npm.im/${pkg.name})`
+    'user-agent': USER_AGENT
   }
   if (opts.headers) {
     Object.keys(opts.headers).forEach(k => {

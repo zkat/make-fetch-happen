@@ -292,7 +292,7 @@ test('falls back to stale cache on request failure (adds Warning, too)', t => {
     })
   }).then(res => {
     t.equal(res.status, 200, 'fell back to cached version on error')
-    t.match(res.headers.get('Warning'), /111 localhost/, 'added warning')
+    t.match(res.headers.get('Warning'), /111 local\.registry\.npm/, 'added warning')
     return fetch(`${HOST}/test`, {
       cacheManager: CACHE,
       retry: { retries: 0 }
@@ -528,10 +528,10 @@ test('refreshes cached request on HEAD request', t => {
     })
   }).then(res => {
     t.equal(res.status, 304, 'revalidated cached req returns 304')
-    t.match(
+    t.deepEqual(
       res.headers.get('Warning'),
-      /^110 localhost/,
-      'cached response considered stale'
+      null,
+      'successfully revalidated -- no warnings'
     )
     return res.buffer()
   }).then(body => {
