@@ -172,7 +172,13 @@ function isStale (req, res) {
     method: req.method,
     headers: adaptHeaders(req.headers)
   }
-  const bool = !makePolicy(req, res).satisfiesWithoutRevalidation(_req)
+  const policy = makePolicy(req, res)
+  policy._responseTime = new Date(
+    res.headers.get('x-local-cache-time') ||
+    res.headers.get('date') ||
+    0 // better to pretend everything is stale
+  )
+  const bool = !policy.satisfiesWithoutRevalidation(_req)
   return bool
 }
 
