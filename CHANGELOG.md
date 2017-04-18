@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.2.3"></a>
+## [2.2.3](https://github.com/zkat/make-fetch-happen/compare/v2.2.2...v2.2.3) (2017-04-18)
+
+
+### Bug Fixes
+
+* **staleness:** responses older than 8h were never stale :< ([b54dd75](https://github.com/zkat/make-fetch-happen/commit/b54dd75))
+* **warning:** remove spurious warning, make format more spec-compliant ([2e4f6bb](https://github.com/zkat/make-fetch-happen/commit/2e4f6bb))
+
+
+
 <a name="2.2.2"></a>
 ## [2.2.2](https://github.com/zkat/make-fetch-happen/compare/v2.2.1...v2.2.2) (2017-04-12)
 
