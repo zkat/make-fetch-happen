@@ -2,7 +2,6 @@
 
 const cacache = require('cacache')
 const fetch = require('node-fetch')
-const fs = require('fs')
 const pipe = require('mississippi').pipe
 const ssri = require('ssri')
 const through = require('mississippi').through
@@ -57,15 +56,7 @@ module.exports = class Cache {
             status: 200
           })
         }
-        return new this.Promise((resolve, reject) => {
-          fs.stat(info.path, (err, stat) => {
-            if (err) {
-              return reject(err)
-            } else {
-              return resolve(stat)
-            }
-          })
-        }).then(stat => {
+        return Promise.resolve().then(() => {
           const cachePath = this._path
           let disturbed = false
           // avoid opening cache file handles until a user actually tries to
@@ -75,7 +66,7 @@ module.exports = class Cache {
               cb(null, chunk, enc)
             } else {
               disturbed = true
-              if (stat.size > MAX_MEM_SIZE) {
+              if (info.size > MAX_MEM_SIZE) {
                 pipe(
                   cacache.get.stream.byDigest(cachePath, info.integrity),
                   body,
@@ -99,7 +90,7 @@ module.exports = class Cache {
             url: req.url,
             headers: resHeaders,
             status: 200,
-            size: stat.size
+            size: info.size
           })
         }).catch(err => {
           if (err.code === 'ENOENT') {
