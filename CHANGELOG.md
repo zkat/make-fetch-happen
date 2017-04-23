@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.2.5"></a>
+## [2.2.5](https://github.com/zkat/make-fetch-happen/compare/v2.2.4...v2.2.5) (2017-04-23)
+
+
+### Bug Fixes
+
+* **deps:** bump cacache and use its size feature ([926c1d3](https://github.com/zkat/make-fetch-happen/commit/926c1d3))
+
+
+
 <a name="2.2.4"></a>
 ## [2.2.4](https://github.com/zkat/make-fetch-happen/compare/v2.2.3...v2.2.4) (2017-04-18)
 
