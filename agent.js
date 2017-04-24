@@ -59,15 +59,38 @@ function checkNoProxy (uri) {
   return false
 }
 
+module.exports.getProcessEnv = getProcessEnv
+
+function getProcessEnv (env) {
+  if (!env) { return }
+
+  let value
+
+  if (Array.isArray(env)) {
+    for (let e of env) {
+      value = process.env[e] ||
+        process.env[e.toUpperCase()] ||
+        process.env[e.toLowerCase()]
+      if (typeof value !== 'undefined') { break }
+    }
+  }
+
+  if (typeof env === 'string') {
+    value = process.env[env] ||
+      process.env[env.toUpperCase()] ||
+      process.env[env.toLowerCase()]
+  }
+
+  return value
+}
+
 function getProxyUri (uri, opts) {
   const protocol = url.parse(uri).protocol
 
   const proxy = opts.proxy || (
-    protocol === 'https:' && process.env.https_proxy
+    protocol === 'https:' && getProcessEnv('https_proxy')
   ) || (
-    protocol === 'http:' && (
-      process.env.https_proxy || process.env.http_proxy || process.env.proxy
-    )
+    protocol === 'http:' && getProcessEnv(['https_proxy', 'http_proxy', 'proxy'])
   )
 
   const parsedProxy = (typeof proxy === 'string') ? url.parse(proxy) : proxy
