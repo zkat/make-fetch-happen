@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.2.6"></a>
+## [2.2.6](https://github.com/zkat/make-fetch-happen/compare/v2.2.5...v2.2.6) (2017-04-26)
+
+
+### Bug Fixes
+
+* **agent:** check uppercase & lowercase proxy env (#24) ([acf2326](https://github.com/zkat/make-fetch-happen/commit/acf2326)), closes [#22](https://github.com/zkat/make-fetch-happen/issues/22)
+* **deps:** switch to node-fetch-npm and stop bundling ([3db603b](https://github.com/zkat/make-fetch-happen/commit/3db603b))
+
+
+
 <a name="2.2.5"></a>
 ## [2.2.5](https://github.com/zkat/make-fetch-happen/compare/v2.2.4...v2.2.5) (2017-04-23)
 
