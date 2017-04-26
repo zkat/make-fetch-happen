@@ -32,9 +32,6 @@
     "twitter": "maybekatz"
   },
   "license": "CC0-1.0",
-  "bundleDependencies": [
-    "node-fetch"
-  ],
   "dependencies": {
     "agentkeepalive": "^3.1.0",
     "cacache": "^8.0.0",
@@ -43,7 +40,7 @@
     "https-proxy-agent": "^1.0.0",
     "lru-cache": "^4.0.2",
     "mississippi": "^1.2.0",
-    "node-fetch": "2.0.0-alpha.3",
+    "node-fetch-npm": "^1.0.0",
     "promise-retry": "^1.1.1",
     "socks-proxy-agent": "^2.0.0",
     "ssri": "^4.1.2"

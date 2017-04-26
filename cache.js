@@ -1,7 +1,7 @@
 'use strict'
 
 const cacache = require('cacache')
-const fetch = require('node-fetch')
+const fetch = require('node-fetch-npm')
 const pipe = require('mississippi').pipe
 const ssri = require('ssri')
 const through = require('mississippi').through

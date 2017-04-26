@@ -2,7 +2,7 @@
 
 let Cache
 const CachePolicy = require('http-cache-semantics')
-const fetch = require('node-fetch')
+const fetch = require('node-fetch-npm')
 const pkg = require('./package.json')
 const retry = require('promise-retry')
 let ssri

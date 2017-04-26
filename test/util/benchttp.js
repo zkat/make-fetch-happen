@@ -4,7 +4,7 @@ const BB = require('bluebird')
 const Buffer = require('safe-buffer').Buffer
 
 const cacache = require('cacache')
-const fetch = require('node-fetch')
+const fetch = require('node-fetch-npm')
 const niceFetch = require('../..')
 const nock = require('nock')
 const path = require('path')
