@@ -18,6 +18,8 @@ function getAgent (uri, opts) {
     pxuri
     ? `proxy:${pxuri.protocol}//${pxuri.host}:${pxuri.port}`
     : '>no-proxy<',
+    `local-address:${opts.localAddress || '>no-local-address<'}`,
+    `strict-ssl:${isHttps ? !!opts.strictSSL : '>no-strict-ssl<'}`,
     `ca:${(isHttps && opts.ca) || '>no-ca<'}`,
     `cert:${(isHttps && opts.cert) || '>no-cert<'}`,
     `key:${(isHttps && opts.key) || '>no-key<'}`
@@ -46,9 +48,12 @@ function getAgent (uri, opts) {
     maxSockets: opts.maxSockets || 15,
     ca: opts.ca,
     cert: opts.cert,
-    key: opts.key
+    key: opts.key,
+    localAddress: opts.localAddress,
+    rejectUnauthorized: opts.strictSSL
   }) : new HttpAgent({
-    maxSockets: opts.maxSockets || 15
+    maxSockets: opts.maxSockets || 15,
+    localAddress: opts.localAddress
   })
   AGENT_CACHE.set(key, agent)
   return agent
@@ -110,7 +115,9 @@ function getProxy (proxyUrl, opts) {
     ca: opts.ca,
     cert: opts.cert,
     key: opts.key,
-    maxSockets: opts.maxSockets || 15
+    localAddress: opts.localAddress,
+    maxSockets: opts.maxSockets || 15,
+    rejectUnauthorized: opts.strictSSL
   }
 
   if (proxyUrl.protocol === 'http:') {

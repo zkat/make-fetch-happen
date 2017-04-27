@@ -137,7 +137,8 @@ make-fetch-happen augments the `node-fetch` API with additional features availab
 * [`opts.cacheManager`](#opts-cache-manager) - Cache target to read/write
 * [`opts.cache`](#opts-cache) - `fetch` cache mode. Controls cache *behavior*.
 * [`opts.proxy`](#opts-proxy) - Proxy agent
-* [`opts.ca, opts.cert, opts.key`](#https-opts)
+* [`opts.ca, opts.cert, opts.key, opts.strictSSL`](#https-opts)
+* [`opts.localAddress`](#opts-local-address)
 * [`opts.maxSockets`](#opts-max-sockets)
 * [`opts.retry`](#opts-retry) - Request retry settings
 * [`opts.integrity`](#opts-integrity) - [Subresource Integrity](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity) metadata.
@@ -285,12 +286,17 @@ fetch('https://registry.npmjs.org/make-fetch-happen', {
 })
 ```
 
-#### <a name="https-opts"></a> `> opts.ca, opts.cert, opts.key`
+#### <a name="https-opts"></a> `> opts.ca, opts.cert, opts.key, opts.strictSSL`
 
 These values are passed in directly to the HTTPS agent and will be used for both
-proxied and unproxied outgoing HTTPS requests. They correspond to the same
-options the `https` module accepts, which will be themselves passed to
-`tls.connect()`.
+proxied and unproxied outgoing HTTPS requests. They mostly correspond to the
+same options the `https` module accepts, which will be themselves passed to
+`tls.connect()`. `opts.strictSSL` corresponds to `rejectUnauthorized`.
+
+#### <a name="opts-local-address"></a> `> opts.localAddress`
+
+Passed directly to `http` and `https` request calls. Determines the local
+address to bind to.
 
 #### <a name="opts-max-sockets"></a> `> opts.maxSockets`
 
