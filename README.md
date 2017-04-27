@@ -23,6 +23,7 @@ pooling, proxies, retries, [and more](#features)!
     * [`opts.cacheManager`](#opts-cache-manager)
     * [`opts.cache`](#opts-cache)
     * [`opts.proxy`](#opts-proxy)
+    * [`opts.noProxy`](#opts-no-proxy)
     * [`opts.ca, opts.cert, opts.key`](#https-opts)
     * [`opts.maxSockets`](#opts-max-sockets)
     * [`opts.retry`](#opts-retry)
@@ -137,6 +138,7 @@ make-fetch-happen augments the `node-fetch` API with additional features availab
 * [`opts.cacheManager`](#opts-cache-manager) - Cache target to read/write
 * [`opts.cache`](#opts-cache) - `fetch` cache mode. Controls cache *behavior*.
 * [`opts.proxy`](#opts-proxy) - Proxy agent
+* [`opts.noProxy`](#opts-no-proxy) - Domain segments to disable proxying for.
 * [`opts.ca, opts.cert, opts.key, opts.strictSSL`](#https-opts)
 * [`opts.localAddress`](#opts-local-address)
 * [`opts.maxSockets`](#opts-max-sockets)
@@ -285,6 +287,13 @@ fetch('https://registry.npmjs.org/make-fetch-happen', {
   }
 })
 ```
+
+#### <a name="opts-no-proxy"></a> `> opts.noProxy`
+
+If present, should be a comma-separated string or an array of domain extensions
+that a proxy should _not_ be used for.
+
+This option may also be provided through `process.env.NO_PROXY`.
 
 #### <a name="https-opts"></a> `> opts.ca, opts.cert, opts.key, opts.strictSSL`
 

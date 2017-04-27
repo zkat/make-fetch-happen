@@ -59,9 +59,22 @@ function getAgent (uri, opts) {
   return agent
 }
 
-function checkNoProxy (uri) {
-  // TODO
-  return false
+function checkNoProxy (uri, opts) {
+  const host = url.parse(uri).hostname.split('.').reverse()
+  let noproxy = (opts.noProxy || getProcessEnv('no_proxy'))
+  if (typeof noproxy === 'string') {
+    noproxy = noproxy.split(/\s*,\s*/g)
+  }
+  return noproxy && noproxy.some(no => {
+    const noParts = no.split('.').filter(x => x).reverse()
+    if (!noParts.length) { return false }
+    for (let i = 0; i < noParts.length; i++) {
+      if (host[i] !== noParts[i]) {
+        return false
+      }
+    }
+    return true
+  })
 }
 
 module.exports.getProcessEnv = getProcessEnv
@@ -97,10 +110,11 @@ function getProxyUri (uri, opts) {
   ) || (
     protocol === 'http:' && getProcessEnv(['https_proxy', 'http_proxy', 'proxy'])
   )
+  if (!proxy) { return null }
 
   const parsedProxy = (typeof proxy === 'string') ? url.parse(proxy) : proxy
 
-  return !checkNoProxy(uri) && parsedProxy
+  return !checkNoProxy(uri, opts) && parsedProxy
 }
 
 let HttpProxyAgent
