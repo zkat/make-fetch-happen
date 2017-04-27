@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.3.0"></a>
+# [2.3.0](https://github.com/zkat/make-fetch-happen/compare/v2.2.6...v2.3.0) (2017-04-27)
+
+
+### Features
+
+* **agent:** added opts.strictSSL and opts.localAddress ([c35015a](https://github.com/zkat/make-fetch-happen/commit/c35015a))
+* **proxy:** Added opts.noProxy and NO_PROXY support ([f45c915](https://github.com/zkat/make-fetch-happen/commit/f45c915))
+
+
+
 <a name="2.2.6"></a>
 ## [2.2.6](https://github.com/zkat/make-fetch-happen/compare/v2.2.5...v2.2.6) (2017-04-26)
 
