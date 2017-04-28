@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.4.0"></a>
+# [2.4.0](https://github.com/zkat/make-fetch-happen/compare/v2.3.0...v2.4.0) (2017-04-28)
+
+
+### Bug Fixes
+
+* **memoize:** cacache had a broken memoizer ([8a9ed4c](https://github.com/zkat/make-fetch-happen/commit/8a9ed4c))
+
+
+### Features
+
+* **memoization:** only slurp stuff into memory if opts.memoize is not false ([0744adc](https://github.com/zkat/make-fetch-happen/commit/0744adc))
+
+
+
 <a name="2.3.0"></a>
 # [2.3.0](https://github.com/zkat/make-fetch-happen/compare/v2.2.6...v2.3.0) (2017-04-27)
 
