@@ -38,6 +38,7 @@ module.exports = class Cache {
   // Returns a Promise that resolves to the response associated with the first
   // matching request in the Cache object.
   match (req, opts) {
+    opts = opts || {}
     const key = cacheKey(req)
     return cacache.get.info(this._path, key).then(info => {
       if (info && info.metadata && matchDetails(req, {
@@ -68,14 +69,16 @@ module.exports = class Cache {
               disturbed = true
               if (opts.memoize !== false && info.size > MAX_MEM_SIZE) {
                 pipe(
-                  cacache.get.stream.byDigest(cachePath, info.integrity),
+                  cacache.get.stream.byDigest(cachePath, info.integrity, {
+                    memoize: opts.memoize
+                  }),
                   body,
                   () => {}
                 )
               } else {
                 // cacache is much faster at bulk reads
                 cacache.get.byDigest(cachePath, info.integrity, {
-                  memoize: opts.memoize !== false
+                  memoize: opts.memoize
                 }).then(data => {
                   body.write(data, () => {
                     body.end()
@@ -105,6 +108,7 @@ module.exports = class Cache {
 
   // Takes both a request and its response and adds it to the given cache.
   put (req, response, opts) {
+    opts = opts || {}
     const size = response.headers.get('content-length')
     const fitInMemory = !!size && opts.memoize !== false && size < MAX_MEM_SIZE
     const ckey = cacheKey(req)
@@ -118,7 +122,7 @@ module.exports = class Cache {
       uid: this._uid,
       gid: this._gid,
       size,
-      memoize: fitInMemory
+      memoize: fitInMemory && opts.memoize
     }
     if (req.method === 'HEAD' || response.status === 304) {
       // Update metadata without writing
@@ -192,7 +196,19 @@ module.exports = class Cache {
   // Finds the Cache entry whose key is the request, and if found, deletes the
   // Cache entry and returns a Promise that resolves to true. If no Cache entry
   // is found, it returns false.
-  'delete' (req) {
+  'delete' (req, opts) {
+    opts = opts || {}
+    if (typeof opts.memoize === 'object') {
+      if (opts.memoize.reset) {
+        opts.memoize.reset()
+      } else if (opts.memoize.clear) {
+        opts.memoize.clear()
+      } else {
+        Object.keys(opts.memoize).forEach(k => {
+          opts.memoize[k] = null
+        })
+      }
+    }
     return cacache.rm.entry(
       this._path,
       cacheKey(req)
