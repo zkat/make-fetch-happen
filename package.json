@@ -34,7 +34,7 @@
   "license": "CC0-1.0",
   "dependencies": {
     "agentkeepalive": "^3.1.0",
-    "cacache": "^8.0.0",
+    "cacache": "^9.0.0",
     "http-cache-semantics": "^3.7.3",
     "http-proxy-agent": "^1.0.0",
     "https-proxy-agent": "^1.0.0",
