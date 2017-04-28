@@ -66,7 +66,7 @@ module.exports = class Cache {
               cb(null, chunk, enc)
             } else {
               disturbed = true
-              if (info.size > MAX_MEM_SIZE) {
+              if (opts.memoize !== false && info.size > MAX_MEM_SIZE) {
                 pipe(
                   cacache.get.stream.byDigest(cachePath, info.integrity),
                   body,
@@ -75,7 +75,7 @@ module.exports = class Cache {
               } else {
                 // cacache is much faster at bulk reads
                 cacache.get.byDigest(cachePath, info.integrity, {
-                  memoize: true
+                  memoize: opts.memoize !== false
                 }).then(data => {
                   body.write(data, () => {
                     body.end()
@@ -106,7 +106,7 @@ module.exports = class Cache {
   // Takes both a request and its response and adds it to the given cache.
   put (req, response, opts) {
     const size = response.headers.get('content-length')
-    const fitInMemory = !!size && size < MAX_MEM_SIZE
+    const fitInMemory = !!size && opts.memoize !== false && size < MAX_MEM_SIZE
     const ckey = cacheKey(req)
     const cacheOpts = {
       algorithms: opts.algorithms,
