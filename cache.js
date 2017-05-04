@@ -42,6 +42,10 @@ module.exports = class Cache {
     opts = opts || {}
     const key = cacheKey(req)
     return cacache.get.info(this._path, key).then(info => {
+      return info && cacache.get.hasContent(
+        this._path, info.integrity, opts
+      ).then(exists => exists && info)
+    }).then(info => {
       if (info && info.metadata && matchDetails(req, {
         url: info.metadata.url,
         reqHeaders: new fetch.Headers(info.metadata.reqHeaders),
