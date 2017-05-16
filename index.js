@@ -303,7 +303,7 @@ function remoteFetch (uri, opts) {
     follow: opts.follow,
     headers: new fetch.Headers(headers),
     method: opts.method,
-    redirect: opts.redirect,
+    redirect: opts.redirect || 'manual',
     size: opts.size,
     timeout: opts.timeout
   }
@@ -355,6 +355,11 @@ function remoteFetch (uri, opts) {
 
           if (isRetriable) {
             return retryHandler(res)
+          }
+
+          if (res.status === 302 || res.status === 301) {
+            // manually call to switch agents between redirects
+            return remoteFetch(res.headers.get('location'), opts)
           }
 
           return res
