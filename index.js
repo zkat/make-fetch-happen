@@ -1,6 +1,7 @@
 'use strict'
 
 let Cache
+const url = require('url')
 const CachePolicy = require('http-cache-semantics')
 const fetch = require('node-fetch-npm')
 const pkg = require('./package.json')
@@ -10,6 +11,7 @@ const Stream = require('stream')
 const getAgent = require('./agent')
 const setWarning = require('./warning')
 
+const isURL = /^https?:/
 const USER_AGENT = `${pkg.name}/${pkg.version} (+https://npm.im/${pkg.name})`
 
 const RETRY_ERRORS = [
@@ -303,8 +305,9 @@ function remoteFetch (uri, opts) {
     follow: opts.follow,
     headers: new fetch.Headers(headers),
     method: opts.method,
-    redirect: opts.redirect || 'manual',
+    redirect: 'manual',
     size: opts.size,
+    counter: opts.counter,
     timeout: opts.timeout
   }
 
@@ -357,9 +360,44 @@ function remoteFetch (uri, opts) {
             return retryHandler(res)
           }
 
-          if (res.status === 302 || res.status === 301) {
-            // manually call to switch agents between redirects
-            return remoteFetch(res.headers.get('location'), opts)
+          if (fetch.isRedirect(res.status) && opts.redirect !== 'manual') {
+            if (opts.redirect === 'error') {
+              throw new Error(`redirect mode is set to error: ${uri}`, 'no-redirect') 
+            }
+
+            if (req.counter >= req.follow) {
+              throw new Error(`maximum redirect reached at: ${uri}`, 'max-redirect')
+            }
+
+            if (!res.headers.get('location')) {
+              throw new Error(`redirect location header missing at: ${uri}`, 'invalid-redirect')
+            }  
+
+            // Remove authorization if changing hostnames (but not if just
+            // changing ports or protocols).  This matches the behavior of request:
+            // https://github.com/request/request/blob/b12a6245/lib/redirect.js#L134-L138
+            const resolvedUrl = url.resolve(req.url, res.headers.get('location'))
+            let redirectURL = ''
+            if (!isURL.test(res.headers.get('location'))) {
+              redirectURL = url.parse(resolvedUrl)
+            } else {
+              redirectURL = url.parse(res.headers.get('location'))
+            }
+            if (url.parse(req.url).hostname !== redirectURL.hostname) {
+              req.headers.delete('authorization')
+            }
+
+            // per fetch spec, for POST request with 301/302 response, or any request with 303 response, use GET when following redirect
+            if (res.statusCode === 303
+              || ((res.statusCode === 301 || res.statusCode === 302) && req.method === 'POST'))
+            {
+              req.method = 'GET';
+              req.body = null;
+              req.headers.delete('content-length');
+            }
+
+            opts.counter = ++req.counter;
+            return cachingFetch(resolvedUrl, opts)
           }
 
           return res
