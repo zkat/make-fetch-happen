@@ -362,7 +362,7 @@ function remoteFetch (uri, opts) {
 
           if (fetch.isRedirect(res.status) && opts.redirect !== 'manual') {
             if (opts.redirect === 'error') {
-              throw new Error(`redirect mode is set to error: ${uri}`, 'no-redirect') 
+              throw new Error(`redirect mode is set to error: ${uri}`, 'no-redirect')
             }
 
             if (req.counter >= req.follow) {
@@ -371,7 +371,7 @@ function remoteFetch (uri, opts) {
 
             if (!res.headers.get('location')) {
               throw new Error(`redirect location header missing at: ${uri}`, 'invalid-redirect')
-            }  
+            }
 
             // Remove authorization if changing hostnames (but not if just
             // changing ports or protocols).  This matches the behavior of request:
@@ -388,15 +388,19 @@ function remoteFetch (uri, opts) {
             }
 
             // per fetch spec, for POST request with 301/302 response, or any request with 303 response, use GET when following redirect
-            if (res.statusCode === 303
-              || ((res.statusCode === 301 || res.statusCode === 302) && req.method === 'POST'))
-            {
-              req.method = 'GET';
-              req.body = null;
-              req.headers.delete('content-length');
+            if (res.status === 303 ||
+              ((res.status === 301 || res.status === 302) && req.method === 'POST')) {
+              opts.method = 'GET'
+              opts.body = null
+              req.headers.delete('content-length')
             }
 
-            opts.counter = ++req.counter;
+            opts.headers = {}
+            req.headers.forEach((value, name) => {
+              opts.headers[name] = value
+            })
+
+            opts.counter = ++req.counter
             return cachingFetch(resolvedUrl, opts)
           }
 
