@@ -7,9 +7,11 @@ const finished = BB.promisify(require('mississippi').finished)
 const test = require('tap').test
 const through = require('mississippi').through
 const tnock = require('./util/tnock')
+const nock = require('nock')
 
 const CONTENT = Buffer.from('hello, world!', 'utf8')
 const HOST = 'https://make-fetch-happen.npm'
+const HTTPHOST = 'http://registry.npm.test.org'
 
 const fetch = require('..')
 
@@ -90,6 +92,135 @@ test('supports following redirects', t => {
     t.equal(res.status, 301, 'did not follow redirect with manual mode')
     return res.buffer()
   }).then(res => t.equal(res.length, 0, 'empty body'))
+})
+
+test('supports protocol switching on redirect', t => {
+  const httpSrv = tnock(t, HTTPHOST)
+  const srv = tnock(t, HOST)
+
+  httpSrv.get('/redirect').twice().reply(301, '', {
+    'Location': `${HOST}/test`
+  })
+  srv.get('/test').reply(200, CONTENT)
+  return fetch(`${HTTPHOST}/redirect`).then(res => {
+    t.equal(res.status, 200, 'got the final status')
+    return res.buffer()
+  }).then(buf => {
+    t.deepEqual(buf, CONTENT, 'final req gave right body')
+    return fetch(`${HTTPHOST}/redirect`, {
+      redirect: 'manual'
+    })
+  }).then(res => {
+    t.equal(res.status, 301, 'did not follow redirect with manual mode')
+    return res.buffer()
+  }).then(res => t.equal(res.length, 0, 'empty body'))
+})
+
+test('supports manual redirect flag', t => {
+  const srv = tnock(t, HOST)
+
+  srv.get('/redirect').reply(301, '', {
+    'Location': `${HOST}/test`
+  })
+
+  return fetch(`${HOST}/redirect`, {redirect: 'manual'}).then(res => {
+    t.equal(res.status, 301, 'got the final status')
+  })
+})
+
+test('supports error redirect flag', t => {
+  const srv = tnock(t, HOST)
+
+  srv.get('/redirect').reply(301, '', {
+    'Location': `${HOST}/test`
+  })
+
+  return fetch(`${HOST}/redirect`, {redirect: 'error'}).catch(error => {
+    t.equal(error instanceof Error, true)
+    t.equal(error.message, 'redirect mode is set to error: https://make-fetch-happen.npm/redirect')
+  })
+})
+
+test('throws error when redirect location is missing', t => {
+  const srv = tnock(t, HOST)
+
+  srv.get('/redirect').reply(301)
+
+  return fetch(`${HOST}/redirect`).catch(error => {
+    t.equal(error instanceof Error, true)
+    t.equal(error.message, 'redirect location header missing at: https://make-fetch-happen.npm/redirect')
+  })
+})
+
+test('removes authorization header if changing hostnames', t => {
+  const httpSrv = tnock(t, HTTPHOST)
+  const srv = tnock(t, HOST)
+
+  httpSrv.matchHeader('authorization', 'test')
+    .get('/redirect').reply(301, '', {
+      'Location': `${HOST}/test`
+    })
+  
+  srv.matchHeader('authorization', 'test')
+    .get('/test').reply(200, CONTENT)
+
+  return fetch(`${HTTPHOST}/redirect`, {
+    headers: { 'authorization': 'test' }
+  })
+  .catch(error => {
+    t.equal(error instanceof Error, true)
+    nock.cleanAll()
+  })
+})
+
+test('supports passthrough of options on redirect', t => {
+  const httpSrv = tnock(t, HTTPHOST)
+  const srv = tnock(t, HOST)
+
+  httpSrv.get('/redirect').reply(301, '', {
+    'Location': `${HOST}/test`
+  })
+  srv.get('/test').matchHeader('x-test', 'test').reply(200, CONTENT)
+
+  return fetch(`${HTTPHOST}/redirect`, {
+    headers: { 'x-test': 'test' }
+  })
+  .then(buf => buf.buffer())
+  .then(buf => {
+    t.deepEqual(buf, CONTENT, 'request succeeded')
+  })
+})
+
+test('supports redirects from POST requests', t => {
+  const srv = tnock(t, HOST)
+
+  srv.get('/test').reply(200, CONTENT)
+  srv.post('/redirect').reply(301, '', {
+    'Location': `${HOST}/test`
+  })
+
+  return fetch(`${HOST}/redirect`, {
+    method: 'POST',
+    body: 'test'
+  }).then(res => {
+    t.equal(res.status, 200)
+    return res.buffer()
+  }).then(buf => {
+    t.deepEqual(buf, CONTENT, 'request succeeded')
+  })
+})
+
+test('throws error if follow is less than request count', t => {
+  const srv = tnock(t, HOST)
+
+  srv.get('/redirect').reply(301, '', {
+    'Location': `${HOST}/test`
+  })
+
+  return fetch(`${HOST}/redirect`, {follow: 0}).catch(error => {
+    t.equal(error instanceof Error, true)
+    t.equal(error.message, 'maximum redirect reached at: https://make-fetch-happen.npm/redirect')
+  })
 })
 
 test('supports streaming content', t => {
