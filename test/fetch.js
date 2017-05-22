@@ -116,23 +116,6 @@ test('supports protocol switching on redirect', t => {
   }).then(res => t.equal(res.length, 0, 'empty body'))
 })
 
-test('handles redirects with original fetch', t => {
-  const httpSrv = tnock(t, HTTPHOST)
-  const srv = tnock(t, HOST)
-
-  httpSrv.get('/redirect').reply(301, '', {
-    'Location': `${HOST}/test`
-  })
-  srv.get('/test').reply(200, CONTENT)
-  const configuredFetch = fetch.defaults({
-    cacheManager: CACHE
-  })
-
-  return configuredFetch(`${HTTPHOST}/redirect`).then(res => {
-    t.equal(res.status, 200, 'got the final status')
-  })
-})
-
 test('supports manual redirect flag', t => {
   const srv = tnock(t, HOST)
 
@@ -173,13 +156,32 @@ test('removes authorization header if changing hostnames', t => {
   const httpSrv = tnock(t, HTTPHOST)
   const srv = tnock(t, HOST)
 
+  httpSrv.matchHeader('authorization', 'test')
+    .get('/redirect').reply(301, '', {
+      'Location': `${HOST}/test`
+    })
+  
+  srv.matchHeader('authorization', 'test')
+    .get('/test').reply(200, CONTENT)
+
+  return fetch(`${HTTPHOST}/redirect`, {
+    headers: { 'authorization': 'test' }
+  }).catch(error => {
+    t.equal(error instanceof Error, true)
+  })
+})
+
+test('supports passthrough of options on redirect', t => {
+  const httpSrv = tnock(t, HTTPHOST)
+  const srv = tnock(t, HOST)
+
   httpSrv.get('/redirect').reply(301, '', {
     'Location': `${HOST}/test`
   })
-  srv.get('/test').reply(200, CONTENT)
+  srv.get('/test').matchHeader('x-test', 'test').reply(200, CONTENT)
 
   return fetch(`${HTTPHOST}/redirect`, {
-    headers: { 'authorization': 'abc' }
+    headers: { 'x-test': 'test' }
   })
   .then(buf => buf.buffer())
   .then(buf => {

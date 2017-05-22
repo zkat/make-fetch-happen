@@ -360,51 +360,53 @@ function remoteFetch (uri, opts) {
             return retryHandler(res)
           }
 
-          if (fetch.isRedirect(res.status) && opts.redirect !== 'manual') {
-            if (opts.redirect === 'error') {
-              throw new Error(`redirect mode is set to error: ${uri}`, 'no-redirect')
-            }
-
-            if (req.counter >= req.follow) {
-              throw new Error(`maximum redirect reached at: ${uri}`, 'max-redirect')
-            }
-
-            if (!res.headers.get('location')) {
-              throw new Error(`redirect location header missing at: ${uri}`, 'invalid-redirect')
-            }
-
-            // Remove authorization if changing hostnames (but not if just
-            // changing ports or protocols).  This matches the behavior of request:
-            // https://github.com/request/request/blob/b12a6245/lib/redirect.js#L134-L138
-            const resolvedUrl = url.resolve(req.url, res.headers.get('location'))
-            let redirectURL = ''
-            if (!isURL.test(res.headers.get('location'))) {
-              redirectURL = url.parse(resolvedUrl)
-            } else {
-              redirectURL = url.parse(res.headers.get('location'))
-            }
-            if (url.parse(req.url).hostname !== redirectURL.hostname) {
-              req.headers.delete('authorization')
-            }
-
-            // per fetch spec, for POST request with 301/302 response, or any request with 303 response, use GET when following redirect
-            if (res.status === 303 ||
-              ((res.status === 301 || res.status === 302) && req.method === 'POST')) {
-              opts.method = 'GET'
-              opts.body = null
-              req.headers.delete('content-length')
-            }
-
-            opts.headers = {}
-            req.headers.forEach((value, name) => {
-              opts.headers[name] = value
-            })
-
-            opts.counter = ++req.counter
-            return cachingFetch(resolvedUrl, opts)
+          if (!fetch.isRedirect(res.status) || opts.redirect === 'manual') {
+            return res
           }
 
-          return res
+          // handle redirects - matches behavior of npm-fetch: https://github.com/bitinn/node-fetch
+          if (opts.redirect === 'error') {
+            throw new Error(`redirect mode is set to error: ${uri}`, 'no-redirect')
+          }
+
+          if (!res.headers.get('location')) {
+            throw new Error(`redirect location header missing at: ${uri}`, 'invalid-redirect')
+          }
+
+          if (req.counter >= req.follow) {
+            throw new Error(`maximum redirect reached at: ${uri}`, 'max-redirect')
+          }
+
+          const resolvedUrl = url.resolve(req.url, res.headers.get('location'))
+          let redirectURL = url.parse(resolvedUrl)
+
+          if (isURL.test(res.headers.get('location'))) {
+            redirectURL = url.parse(res.headers.get('location'))
+          }
+
+          // Remove authorization if changing hostnames (but not if just
+          // changing ports or protocols).  This matches the behavior of request:
+          // https://github.com/request/request/blob/b12a6245/lib/redirect.js#L134-L138
+          if (url.parse(req.url).hostname !== redirectURL.hostname) {
+            req.headers.delete('authorization')
+          }
+
+          // for POST request with 301/302 response, or any request with 303 response,
+          // use GET when following redirect
+          if (res.status === 303 ||
+            ((res.status === 301 || res.status === 302) && req.method === 'POST')) {
+            opts.method = 'GET'
+            opts.body = null
+            req.headers.delete('content-length')
+          }
+
+          opts.headers = {}
+          req.headers.forEach((value, name) => {
+            opts.headers[name] = value
+          })
+
+          opts.counter = ++req.counter
+          return cachingFetch(resolvedUrl, opts)
         })
         .catch(err => {
           const code = err.code === 'EPROMISERETRY' ? err.retried.code : err.code
