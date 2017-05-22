@@ -366,15 +366,21 @@ function remoteFetch (uri, opts) {
 
           // handle redirects - matches behavior of npm-fetch: https://github.com/bitinn/node-fetch
           if (opts.redirect === 'error') {
-            throw new Error(`redirect mode is set to error: ${uri}`, 'no-redirect')
+            const err = new Error(`redirect mode is set to error: ${uri}`)
+            err.code = 'ENOREDIRECT'
+            throw err
           }
 
           if (!res.headers.get('location')) {
-            throw new Error(`redirect location header missing at: ${uri}`, 'invalid-redirect')
+            const err = new Error(`redirect location header missing at: ${uri}`)
+            err.code = 'EINVALIDREDIRECT'
+            throw err
           }
 
           if (req.counter >= req.follow) {
-            throw new Error(`maximum redirect reached at: ${uri}`, 'max-redirect')
+            const err = new Error(`maximum redirect reached at: ${uri}`)
+            err.code = 'EMAXREDIRECT'
+            throw err
           }
 
           const resolvedUrl = url.resolve(req.url, res.headers.get('location'))
