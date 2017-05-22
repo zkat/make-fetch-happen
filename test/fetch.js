@@ -7,11 +7,11 @@ const finished = BB.promisify(require('mississippi').finished)
 const test = require('tap').test
 const through = require('mississippi').through
 const tnock = require('./util/tnock')
+const nock = require('nock')
 
 const CONTENT = Buffer.from('hello, world!', 'utf8')
 const HOST = 'https://make-fetch-happen.npm'
 const HTTPHOST = 'http://registry.npm.test.org'
-const CACHE = require('./util/test-dir')(__filename)
 
 const fetch = require('..')
 
@@ -166,8 +166,10 @@ test('removes authorization header if changing hostnames', t => {
 
   return fetch(`${HTTPHOST}/redirect`, {
     headers: { 'authorization': 'test' }
-  }).catch(error => {
+  })
+  .catch(error => {
     t.equal(error instanceof Error, true)
+    nock.cleanAll()
   })
 })
 
