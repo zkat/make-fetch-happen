@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.4.8"></a>
+## [2.4.8](https://github.com/zkat/make-fetch-happen/compare/v2.4.7...v2.4.8) (2017-05-25)
+
+
+### Bug Fixes
+
+* **cache:** pass uid/gid/Promise through to cache ([a847c92](https://github.com/zkat/make-fetch-happen/commit/a847c92))
+
+
+
 <a name="2.4.7"></a>
 ## [2.4.7](https://github.com/zkat/make-fetch-happen/compare/v2.4.6...v2.4.7) (2017-05-24)
 
