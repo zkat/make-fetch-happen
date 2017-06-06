@@ -38,13 +38,21 @@ test('accepts a local path for caches', t => {
   }).then(res => {
     t.equal(res.status, 200, 'non-stale cached res has 200 status')
     const hs = res.headers
-    t.equal(hs.get('x-local-cache'), CACHE, 'path added for cached requests')
+    t.equal(
+      decodeURIComponent(hs.get('x-local-cache')),
+      CACHE,
+      'path added for cached requests'
+    )
     t.match(
-      hs.get('x-local-cache-key'),
+      decodeURIComponent(hs.get('x-local-cache-key')),
       new RegExp(`${HOST}/test`),
       'cache key contains URI'
     )
-    t.equal(hs.get('x-local-cache-hash'), INTEGRITY, 'content hash in header')
+    t.equal(
+      decodeURIComponent(hs.get('x-local-cache-hash')),
+      INTEGRITY,
+      'content hash in header'
+    )
     t.ok(hs.get('x-local-cache-time'), 'content write time in header')
     return res.buffer()
   }).then(body => {
