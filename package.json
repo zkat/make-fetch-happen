@@ -48,7 +48,7 @@
   "devDependencies": {
     "bluebird": "^3.5.0",
     "mkdirp": "^0.5.1",
-    "nock": "^9.0.6",
+    "nock": "^9.0.14",
     "npmlog": "^4.1.2",
     "nyc": "^11.0.3",
     "rimraf": "^2.5.4",
