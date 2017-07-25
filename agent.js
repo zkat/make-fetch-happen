@@ -49,7 +49,7 @@ function getAgent (uri, opts) {
   // A timeout of zero disables the timeout behavior (OS limits still apply).
   // Else, if opts.timeout is a non-zero value, set it to timeout + 1, to ensure that the node-fetch-npm
   // timeout will always fire first, giving us more consistent errors.
-  const agentTimeout = (typeof opts.timeout === 'number' && opts.timeout === 0) ? 0 : opts.timeout + 1
+  const agentTimeout = opts.timeout === 0 ? 0 : opts.timeout + 1
 
   const agent = isHttps ? new HttpsAgent({
     maxSockets: opts.maxSockets || 15,
