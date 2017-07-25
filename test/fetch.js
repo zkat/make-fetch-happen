@@ -160,7 +160,7 @@ test('removes authorization header if changing hostnames', t => {
     .get('/redirect').reply(301, '', {
       'Location': `${HOST}/test`
     })
-  
+
   srv.matchHeader('authorization', 'test')
     .get('/test').reply(200, CONTENT)
 
