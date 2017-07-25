@@ -310,6 +310,17 @@ test('supports opts.timeout for controlling request timeout time', t => {
   })
 })
 
+test('supports opts.timeout greater than 30 seconds', {timeout: 36000}, t => {
+  const srv = tnock(t, HOST)
+  srv.get('/test').delay(31000).reply(200, CONTENT)
+  return fetch(`${HOST}/test`, {
+    timeout: 35000,
+    retry: { retries: 0 }
+  }).then(res => res.buffer()).then(buf => {
+    t.deepEqual(buf, CONTENT, 'retrieved correct content')
+  })
+})
+
 test('retries non-POST requests on timeouts', t => {
   const srv = tnock(t, HOST)
   let attempt = 0
