@@ -100,6 +100,39 @@ test('nothing cached if body stream never used', t => {
   })
 })
 
+test('exports cache deletion API', t => {
+  tnock(t, HOST).get('/test').twice().reply(200, CONTENT, HEADERS)
+  return fetch(`${HOST}/test`, {
+    cacheManager: CACHE,
+    retry: {retries: 0}
+  }).then(res => {
+    t.notOk(
+      res.headers.get('x-local-cache'),
+      'no cache headers if response is from network'
+    )
+    return res.buffer()
+  }).then(body => {
+    t.deepEqual(body, CONTENT, 'got remote content')
+    return fetch.delete(`${HOST}/test`, {
+      cacheManager: CACHE
+    })
+  }).then(() => {
+    return fetch(`${HOST}/test`, {
+      cacheManager: CACHE,
+      retry: {retries: 0}
+    })
+  }).then(res => {
+    t.equal(res.status, 200, 'request succeeded')
+    t.notOk(
+      res.headers.get('x-local-cache'),
+      'no cache headers if response is from network'
+    )
+    return res.buffer()
+  }).then(body => {
+    t.deepEqual(body, CONTENT, 'got remote content')
+  })
+})
+
 test('small responses cached', t => {
   tnock(t, HOST).get('/test').reply(200, CONTENT, {
     'Content-Length': CONTENT.length,
