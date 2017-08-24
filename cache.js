@@ -226,7 +226,14 @@ function matchDetails (req, cached) {
       return false
     } else {
       const fieldsMatch = vary.split(/\s*,\s*/).every(field => {
-        return cached.reqHeaders.get(field) === req.headers.get(field)
+        try {
+          return cached.reqHeaders.get(field) === req.headers.get(field)
+        } catch (e) {
+          if (e instanceof TypeError) {
+            return true
+          }
+          throw e
+        }
       })
       if (!fieldsMatch) {
         return false

@@ -835,7 +835,7 @@ test('does not store response if it has Cache-Control: no-store header', t => {
 test('supports matching using Vary header', t => {
   const srv = tnock(t, HOST)
   srv.get('/test').reply(200, CONTENT, {
-    'Vary': 'Accept',
+    'Vary': 'Accept,User-Agent)',
     'Cache-Control': 'immutable',
     'Content-Type': 'fullfat'
   })
@@ -857,6 +857,7 @@ test('supports matching using Vary header', t => {
     t.equal(
       res.headers.get('content-type'), 'fullfat', 'got original content-type'
     )
+    t.equal(res.headers.get('Vary'), 'Accept,User-Agent)', 'invalid header name is skipped')
     return res.buffer()
   }).then(body => {
     t.deepEqual(body, CONTENT, 'got cached content')
