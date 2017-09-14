@@ -108,6 +108,8 @@ function cachingFetch (uri, _opts) {
 
   if (opts.integrity) {
     initializeSsri()
+    // if verifying integrity, node-fetch must not decompress
+    opts.compress = false
   }
 
   const isCachable = (opts.method === 'GET' || opts.method === 'HEAD') &&

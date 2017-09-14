@@ -8,7 +8,9 @@ const tnock = require('./util/tnock')
 
 const CACHE = require('./util/test-dir')(__filename)
 const CONTENT = Buffer.from('hello, world!', 'utf8')
+const CONTENT_GZ = Buffer.from('H4sIAAAAAAAA/8tIzcnJ11Eozy/KSVEEABONmFgNAAAA', 'utf8')
 const INTEGRITY = ssri.fromData(CONTENT)
+const INTEGRITY_GZ = ssri.fromData(CONTENT_GZ)
 const HOST = 'https://make-fetch-happen-safely.npm'
 
 const fetch = require('..').defaults({retry: false})
@@ -124,5 +126,18 @@ test('checks integrity on cache fetch too', t => {
     }).catch(err => {
       t.equal(err.code, 'EINTEGRITY', 'cached content failed checksum!')
     })
+  })
+})
+
+test('basic integrity verification with gzip content', t => {
+  const srv = tnock(t, HOST)
+  srv.get('/wowsosafe').reply(200, CONTENT_GZ, { 'Content-Type': 'application/x-tgz', 'Content-Encoding': 'x-gzip'})
+  const safetch = fetch.defaults({
+    integrity: INTEGRITY_GZ
+  })
+  return safetch(`${HOST}/wowsosafe`).then(res => {
+    return res.buffer()
+  }).then(buf => {
+    t.deepEqual(buf, CONTENT_GZ, 'good content passed scrutiny 👍🏼')
   })
 })
