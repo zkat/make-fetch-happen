@@ -2,8 +2,8 @@
 
 
 [`make-fetch-happen`](https://github.com/zkat/make-fetch-happen) is a Node.js
-library that wraps [`node-fetch`](https://npm.im/node-fetch) with additional
-features it doesn't intend to include, including HTTP Cache support, request
+library that wraps [`node-fetch-npm`](https://github.com/npm/node-fetch-npm) with additional
+features [`node-fetch`](https://github.com/bitinn/node-fetch) doesn't intend to include, including HTTP Cache support, request
 pooling, proxies, retries, [and more](#features)!
 
 ## Install
