@@ -230,7 +230,7 @@ function conditionalFetch (req, cachedRes, opts) {
   const _req = {
     url: req.url,
     method: req.method,
-    headers: Object.assign({}, opts.headers || {})
+    headers: headersToLowerCase(opts.headers || {})
   }
 
   const policy = makePolicy(req, cachedRes)
@@ -467,4 +467,11 @@ function isHeaderConditional (headers) {
 
   return Object.keys(headers)
     .some(h => modifiers.indexOf(h.toLowerCase()) !== -1)
+}
+
+function headersToLowerCase (headers) {
+  return Object.keys(headers).reduce((acc, key) => {
+    acc[key.toLowerCase()] = headers[key]
+    return acc
+  }, {})
 }
