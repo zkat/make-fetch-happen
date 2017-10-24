@@ -442,4 +442,30 @@ test('accepts opts.retry shorthands', t => {
   })
 })
 
+test('calls opts.onRetry', t => {
+  const srv = tnock(t, HOST)
+  let retryNotification = 0
+  let attempt = 0
+
+  srv.get('/test').delay(100).times(2).reply(200, () => {
+    attempt++
+    if (attempt >= 2) {
+      srv.get('/test').reply(200, CONTENT)
+    }
+    return null
+  })
+  return fetch(`${HOST}/test`, {
+    timeout: 50,
+    retry: {
+      retries: 2,
+      minTimeout: 5
+    },
+    onRetry: () => {
+      retryNotification++
+    }
+  }).then(() => {
+    t.equal(retryNotification, 2, 'onRetry was called correct number of times')
+  })
+})
+
 test('retries non-POST requests on ECONNRESET')

@@ -355,6 +355,10 @@ function remoteFetch (uri, opts) {
             if (!isMethodGetHead) {
               return opts.cacheManager.delete(req).then(() => {
                 if (res.status >= 500 && req.method !== 'POST' && !isStream) {
+                  if (typeof opts.onRetry === 'function') {
+                    opts.onRetry(res)
+                  }
+
                   return retryHandler(res)
                 }
 
@@ -372,6 +376,10 @@ function remoteFetch (uri, opts) {
             )
 
           if (isRetriable) {
+            if (typeof opts.onRetry === 'function') {
+              opts.onRetry(res)
+            }
+
             return retryHandler(res)
           }
 
@@ -437,6 +445,10 @@ function remoteFetch (uri, opts) {
 
           if (req.method === 'POST' || isRetryError) {
             throw err
+          }
+
+          if (typeof opts.onRetry === 'function') {
+            opts.onRetry(err)
           }
 
           return retryHandler(err)
