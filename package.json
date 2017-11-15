@@ -31,7 +31,7 @@
     "email": "kzm@sykosomatic.org",
     "twitter": "maybekatz"
   },
-  "license": "CC0-1.0",
+  "license": "ISC",
   "dependencies": {
     "agentkeepalive": "^3.3.0",
     "cacache": "^10.0.0",
