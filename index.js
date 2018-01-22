@@ -291,7 +291,7 @@ function conditionalFetch (req, cachedRes, opts) {
     })
 }
 
-function remoteFetchHandleIntegrity (res, integrity) {
+function remoteFetchHandleIntegrity (res, integrity, uri) {
   const oldBod = res.body
   const newBod = ssri.integrityStream({
     integrity
@@ -302,6 +302,7 @@ function remoteFetchHandleIntegrity (res, integrity) {
     newBod.emit('error', err)
   })
   newBod.once('error', err => {
+    err.message += ` for ${uri}`
     oldBod.emit('error', err)
   })
 }
@@ -334,7 +335,7 @@ function remoteFetch (uri, opts) {
           res.headers.set('x-fetch-attempts', attemptNum)
 
           if (opts.integrity) {
-            remoteFetchHandleIntegrity(res, opts.integrity)
+            remoteFetchHandleIntegrity(res, opts.integrity, uri)
           }
 
           const isStream = req.body instanceof Stream
