@@ -131,7 +131,7 @@ test('checks integrity on cache fetch too', t => {
 
 test('basic integrity verification with gzip content', t => {
   const srv = tnock(t, HOST)
-  srv.get('/wowsosafe').reply(200, CONTENT_GZ, { 'Content-Type': 'application/x-tgz', 'Content-Encoding': 'x-gzip'})
+  srv.get('/wowsosafe').reply(200, CONTENT_GZ, { 'Content-Type': 'application/x-tgz', 'Content-Encoding': 'x-gzip' })
   const safetch = fetch.defaults({
     integrity: INTEGRITY_GZ
   })

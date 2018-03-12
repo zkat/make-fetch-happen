@@ -167,10 +167,10 @@ test('removes authorization header if changing hostnames', t => {
   return fetch(`${HTTPHOST}/redirect`, {
     headers: { 'authorization': 'test' }
   })
-  .catch(error => {
-    t.equal(error instanceof Error, true)
-    nock.cleanAll()
-  })
+    .catch(error => {
+      t.equal(error instanceof Error, true)
+      nock.cleanAll()
+    })
 })
 
 test('supports passthrough of options on redirect', t => {
@@ -185,10 +185,10 @@ test('supports passthrough of options on redirect', t => {
   return fetch(`${HTTPHOST}/redirect`, {
     headers: { 'x-test': 'test' }
   })
-  .then(buf => buf.buffer())
-  .then(buf => {
-    t.deepEqual(buf, CONTENT, 'request succeeded')
-  })
+    .then(buf => buf.buffer())
+    .then(buf => {
+      t.deepEqual(buf, CONTENT, 'request succeeded')
+    })
 })
 
 test('supports redirects from POST requests', t => {
