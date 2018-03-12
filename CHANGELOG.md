@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="3.0.0"></a>
+# [3.0.0](https://github.com/zkat/make-fetch-happen/compare/v2.6.0...v3.0.0) (2018-03-12)
+
+
+### Bug Fixes
+
+* **license:** switch to ISC ([#49](https://github.com/zkat/make-fetch-happen/issues/49)) ([bf90c6d](https://github.com/zkat/make-fetch-happen/commit/bf90c6d))
+* **standard:** standard@11 update ([ff0aa70](https://github.com/zkat/make-fetch-happen/commit/ff0aa70))
+
+
+### BREAKING CHANGES
+
+* **license:** license changed from CC0 to ISC.
+
+
+
 <a name="2.6.0"></a>
 # [2.6.0](https://github.com/zkat/make-fetch-happen/compare/v2.5.0...v2.6.0) (2017-11-14)
 
