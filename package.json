@@ -34,16 +34,16 @@
   "license": "ISC",
   "dependencies": {
     "agentkeepalive": "^3.4.1",
-    "cacache": "^10.0.4",
+    "cacache": "^11.0.0",
     "http-cache-semantics": "^3.8.1",
     "http-proxy-agent": "^2.1.0",
-    "https-proxy-agent": "^2.2.0",
+    "https-proxy-agent": "^2.2.1",
     "lru-cache": "^4.1.2",
     "mississippi": "^3.0.0",
     "node-fetch-npm": "^2.0.2",
     "promise-retry": "^1.1.1",
-    "socks-proxy-agent": "^3.0.1",
-    "ssri": "^5.2.4"
+    "socks-proxy-agent": "^4.0.0",
+    "ssri": "^5.3.0"
   },
   "devDependencies": {
     "bluebird": "^3.5.1",
