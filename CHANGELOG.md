@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="4.0.0"></a>
+# [4.0.0](https://github.com/zkat/make-fetch-happen/compare/v3.0.0...v4.0.0) (2018-04-09)
+
+
+### meta
+
+* drop node@4, add node@9 ([7b0191a](https://github.com/zkat/make-fetch-happen/commit/7b0191a))
+
+
+### BREAKING CHANGES
+
+* node@4 is no longer supported
+
+
+
 <a name="3.0.0"></a>
 # [3.0.0](https://github.com/zkat/make-fetch-happen/compare/v2.6.0...v3.0.0) (2018-03-12)
 
