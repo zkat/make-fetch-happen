@@ -12,7 +12,7 @@
     "release": "standard-version -s",
     "postrelease": "npm publish && git push --follow-tags",
     "pretest": "standard",
-    "test": "nyc --all -- tap --timeout=35 -J test/*.js",
+    "test": "tap --coverage --nyc-arg=--all --timeout=35 -J test/*.js",
     "update-coc": "weallbehave -o . && git add CODE_OF_CONDUCT.md && git commit -m 'docs(coc): updated CODE_OF_CONDUCT.md'",
     "update-contrib": "weallcontribute -o . && git add CONTRIBUTING.md && git commit -m 'docs(contributing): updated CONTRIBUTING.md'"
   },
@@ -50,7 +50,6 @@
     "mkdirp": "^0.5.1",
     "nock": "^9.2.3",
     "npmlog": "^4.1.2",
-    "nyc": "^11.6.0",
     "require-inject": "^1.4.2",
     "rimraf": "^2.6.2",
     "safe-buffer": "^5.1.1",
