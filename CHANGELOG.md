@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="4.0.1"></a>
+## [4.0.1](https://github.com/zkat/make-fetch-happen/compare/v4.0.0...v4.0.1) (2018-04-12)
+
+
+### Bug Fixes
+
+* **integrity:** use new sri.match() for verification ([4f371a0](https://github.com/zkat/make-fetch-happen/commit/4f371a0))
+
+
+
 <a name="4.0.0"></a>
 # [4.0.0](https://github.com/zkat/make-fetch-happen/compare/v3.0.0...v4.0.0) (2018-04-09)
 
