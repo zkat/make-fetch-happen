@@ -70,7 +70,7 @@ function getAgent (uri, opts) {
 }
 
 function checkNoProxy (uri, opts) {
-  const host = url.parse(uri).hostname.split('.').reverse()
+  const host = url.parse(uri).hostname.split('.').filter(x => x).reverse()
   let noproxy = (opts.noProxy || getProcessEnv('no_proxy'))
   if (typeof noproxy === 'string') {
     noproxy = noproxy.split(/\s*,\s*/g)
