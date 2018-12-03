@@ -165,7 +165,7 @@ function getProxy (proxyUrl, opts, isHttps) {
       return new HttpsProxyAgent(popts)
     }
   }
-  if (proxyUrl.protocol.startsWith('socks')) {
+  if (proxyUrl.protocol && proxyUrl.protocol.startsWith('socks')) {
     if (!SocksProxyAgent) {
       SocksProxyAgent = require('socks-proxy-agent')
     }
