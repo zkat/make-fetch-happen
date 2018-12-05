@@ -212,13 +212,14 @@ class MyCustomRedisCache {
     })
   }
   put (req, res) {
-    return res.buffer().then(body => {
+    const response = res.clone() // clone the response, so the body doesn't get used twice
+    return response.buffer().then(body => {
       return this.redis.setAsync(req.url, JSON.stringify({
         body: body,
-        headers: res.headers.raw()
+        headers: response.headers.raw()
       }))
     }).then(() => {
-      // return the response itself
+      // return the original response itself
       return res
     })
   }
