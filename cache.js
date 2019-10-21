@@ -173,7 +173,9 @@ module.exports = class Cache {
       cacheTargetStream ? cacheTargetStream.end(done) : done()
     })
     const oldBody = response.body
-    const newBody = through({highWaterMark: fitInMemory && MAX_MEM_SIZE})
+    // in readable-stream 3.x, false is not a valid value for highWaterMark
+    const highWaterMark = fitInMemory ? MAX_MEM_SIZE : undefined;
+    const newBody = through({highWaterMark})
     response.body = newBody
     oldBody.once('error', err => newBody.emit('error', err))
     newBody.once('error', err => oldBody.emit('error', err))
