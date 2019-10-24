@@ -61,5 +61,6 @@
     "tap": "^14.8.2",
     "weallbehave": "^1.0.0",
     "weallcontribute": "^1.0.7"
-  }
+  },
+  "engines" : { "node" : ">=8" }
 }
