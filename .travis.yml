@@ -3,4 +3,3 @@ sudo: false
 node_js:
   - "9"
   - "8"
-  - "6"
