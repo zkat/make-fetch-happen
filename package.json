@@ -43,7 +43,7 @@
     "node-fetch-npm": "^2.0.2",
     "promise-retry": "^1.1.1",
     "socks-proxy-agent": "^4.0.0",
-    "ssri": "^6.0.0"
+    "ssri": "^8.0.1"
   },
   "devDependencies": {
     "bluebird": "^3.5.1",
